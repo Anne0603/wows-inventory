@@ -590,12 +590,14 @@ window.handleImageUpload = (event) => {
     compressImage(original, 800, 0.75, (compressed) => {
       document.getElementById('product-img-upload').dataset.imageData = compressed;
       document.getElementById('product-img-upload').style.display = 'none';
+      // Show wrapper
+      const wrapper = document.getElementById('product-img-preview-wrapper');
+      if (wrapper) wrapper.style.display = 'block';
       const preview = document.getElementById('product-img-preview');
       preview.src = compressed;
       preview.style.display = 'block';
       preview.style.cursor = 'pointer';
       preview.onclick = () => document.getElementById('product-img-input').click();
-      preview.title = '點擊更換照片';
     });
   };
   reader.readAsDataURL(file);
@@ -674,7 +676,9 @@ window.saveProduct = async () => {
       showToast('商品已新增！');
     }
     editingProductId = null;
-    navigate('products');
+    const origin = window._editProductOrigin || 'products';
+    window._editProductOrigin = null;
+    navigate(origin);
   } catch (e) {
     console.error('Save product error:', e.code, e.message);
     if (e.code === 'permission-denied') {
@@ -791,6 +795,8 @@ window.showProductDetail = (productId) => {
 
 window.editProduct = (productId) => {
   editingProductId = productId;
+  // Remember where to go back after editing
+  window._editProductOrigin = window._productDetailFromPage || currentPage;
   const p = products.find(x => x.id === productId);
   if (!p) return;
 
@@ -827,6 +833,13 @@ window.editProduct = (productId) => {
   document.getElementById('product-img-upload').dataset.originalData = '';
 
   navigate('add-product');
+};
+
+window.goBackFromAddProduct = () => {
+  editingProductId = null;
+  const origin = window._editProductOrigin || 'products';
+  window._editProductOrigin = null;
+  navigate(origin);
 };
 
 window.goBackFromProductDetail = () => {
