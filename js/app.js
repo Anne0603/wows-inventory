@@ -616,6 +616,7 @@ window.saveProduct = async () => {
   }
 
   showToast('儲存中...');
+  console.log('Saving product, user:', currentUser?.uid);
 
   // Handle image - upload both compressed and original
   const imageData = document.getElementById('product-img-upload').dataset.imageData;
@@ -632,12 +633,12 @@ window.saveProduct = async () => {
         productData.imageOriginalUrl = await getDownloadURL(origRef);
       }
     } catch (e) {
-      console.log('Image upload error (continuing without image):', e);
-      // Continue saving product even if image upload fails
+      console.warn('Image upload error (continuing):', e.code, e.message);
     }
   }
 
   try {
+    console.log('Writing to Firestore...');
     if (editingProductId) {
       await updateDoc(doc(db, 'users', currentUser.uid, 'products', editingProductId), productData);
       const idx = products.findIndex(p => p.id === editingProductId);
@@ -654,12 +655,14 @@ window.saveProduct = async () => {
     }
     navigate('products');
   } catch (e) {
+    console.error('Save product error:', e.code, e.message, e);
     if (e.code === 'permission-denied') {
-      showToast('儲存失敗：請確認 Firebase 規則設定');
+      showToast('❌ 權限不足，請確認 Firestore 規則');
+    } else if (e.code === 'unavailable') {
+      showToast('❌ 網路連線問題，請重試');
     } else {
-      showToast('儲存失敗：' + e.message);
+      showToast('❌ 儲存失敗：' + (e.code || e.message));
     }
-    console.error('Save product error:', e);
   }
 };
 
