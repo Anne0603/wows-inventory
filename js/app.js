@@ -272,7 +272,7 @@ window.navigate = (page) => {
   if (page === 'manage-categories') renderCategoriesManagement();
   if (page === 'manage-expense-categories') renderExpenseCategoriesManagement();
   if (page === 'manage-suppliers') renderSuppliersManagement();
-  if (page === 'add-product') initAddProduct();
+  if (page === 'add-product' && !editingProductId) initAddProduct();
   if (page === 'add-customer') initAddCustomer();
   if (page === 'add-expense') initAddExpense();
   if (page === 'stock-in') initStockIn();
