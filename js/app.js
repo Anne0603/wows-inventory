@@ -390,19 +390,27 @@ window.showStaleStockList = () => {
 // ==================== PRODUCTS ====================
 window.filterProducts = () => renderProductList();
 
+window.showCategoryFilter = () => {
+  const allCategories = ['全部', ...productCategories];
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">選擇類別</div>
+    <div class="form-card" style="margin:0">
+      ${allCategories.map(c => `
+        <div class="picker-item" onclick="selectCategory('${c}')">
+          <span style="flex:1">${c}</span>
+          ${selectedProductCategory === c ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+        </div>`).join('')}
+    </div>`);
+};
+
 function renderProductList() {
   const search = document.getElementById('product-search')?.value?.toLowerCase() || '';
   const container = document.getElementById('product-list-container');
   if (!container) return;
 
-  // Category tabs
-  const allCategories = ['全部', ...productCategories];
-  const tabsContainer = document.getElementById('category-tabs');
-  if (tabsContainer) {
-    tabsContainer.innerHTML = allCategories.map(c => `
-      <div class="cat-tab ${c === selectedProductCategory ? 'active' : ''}" onclick="selectCategory('${c}')">${c}</div>
-    `).join('');
-  }
+  // Update filter button label
+  const label = document.getElementById('category-filter-label');
+  if (label) label.textContent = selectedProductCategory === '全部' ? '全部類別' : selectedProductCategory;
 
   // Filter products
   let filtered = products.filter(p => {
@@ -415,6 +423,10 @@ function renderProductList() {
 
   // Sort
   filtered = sortProducts(filtered);
+
+  // Update count badge
+  const badge = document.getElementById('product-count-badge');
+  if (badge) badge.textContent = `${filtered.length} 件`;
 
   if (filtered.length === 0) {
     container.innerHTML = `<div class="empty-state"><i class="ti ti-box"></i><p>沒有商品</p></div>`;
@@ -431,7 +443,7 @@ function renderProductList() {
     });
     container.innerHTML = Object.entries(groups).map(([cat, prods]) => `
       <div class="category-group">
-        <div class="category-group-label">${cat}</div>
+        <div class="category-group-label">${cat} <span style="color:var(--text4);font-size:12px;font-weight:400">(${prods.length})</span></div>
         <div class="product-list-card">
           ${prods.map(p => renderProductItem(p)).join('')}
         </div>
@@ -467,6 +479,7 @@ function renderProductItem(p) {
 
 window.selectCategory = (cat) => {
   selectedProductCategory = cat;
+  forceCloseModal();
   renderProductList();
 };
 

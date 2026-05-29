@@ -207,8 +207,15 @@
               <i class="ti ti-search"></i>
               <input type="text" placeholder="品名／型號" id="product-search" oninput="filterProducts()">
             </div>
-            <!-- Category tabs -->
-            <div class="category-tabs" id="category-tabs"></div>
+            <!-- Category filter button -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+              <button onclick="showCategoryFilter()" style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;flex:1">
+                <i class="ti ti-filter" style="color:var(--blue);font-size:16px"></i>
+                <span id="category-filter-label" style="color:var(--text2);font-size:14px;flex:1;text-align:left">全部類別</span>
+                <i class="ti ti-chevron-down" style="color:var(--text4);font-size:14px"></i>
+              </button>
+              <div id="product-count-badge" style="background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text4);font-size:13px;white-space:nowrap"></div>
+            </div>
             <!-- Product list -->
             <div id="product-list-container"></div>
           </div>
