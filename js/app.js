@@ -278,7 +278,7 @@ window.navigate = (page) => {
   if (page === 'manage-suppliers') renderSuppliersManagement();
   if (page === 'add-product' && !editingProductId) initAddProduct();
   if (page === 'add-customer' && !editingCustomerId) initAddCustomer();
-  if (page === 'add-expense') initAddExpense();
+  if (page === 'add-expense' && !window._editingExpenseId) initAddExpense();
   if (page === 'stock-in' && !window._editingStockInId) initStockIn();
   if (page === 'stock-out' && !window._editingStockOutId) initStockOut();
 };
@@ -1639,10 +1639,30 @@ function renderExpenseDetailModal() {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">關閉</button>
+      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal();editExpense('${e.id}')">修改</button>
       <button class="submit-btn red" onclick="deleteExpense('${e.id}')">刪除</button>
     </div>`);
 }
+
+window.editExpense = (expenseId) => {
+  const e = expenses.find(x => x.id === expenseId);
+  if (!e) return;
+  window._editingExpenseId = expenseId;
+  // Fill the add-expense form with existing data
+  document.getElementById('expense-category-display').textContent = e.category;
+  document.getElementById('expense-category-display').dataset.value = e.category;
+  document.getElementById('expense-amount').value = e.amount || 0;
+  document.getElementById('expense-amount-display').textContent = `$${(e.amount||0).toLocaleString()}`;
+  document.getElementById('expense-notes').value = e.notes || '';
+  document.getElementById('expense-repeat-day').value = e.repeatDay || '';
+  setDateDisplay('expense-date', new Date(e.date));
+  navigate('add-expense');
+  // Update page title
+  const titleEl = document.querySelector('#page-add-expense .subpage-title');
+  if (titleEl) titleEl.textContent = '修改支出';
+  const btnEl = document.querySelector('#page-add-expense .submit-btn');
+  if (btnEl) btnEl.textContent = '確認修改';
+};
 
 window.editExpenseField = (field) => {
   const e = _editingExpense;
@@ -1736,6 +1756,11 @@ window.deleteExpense = (expenseId) => {
 };
 
 function initAddExpense() {
+  window._editingExpenseId = null;
+  const titleEl2 = document.querySelector('#page-add-expense .subpage-title');
+  if (titleEl2) titleEl2.textContent = '新增支出';
+  const btnEl2 = document.querySelector('#page-add-expense .submit-btn');
+  if (btnEl2) btnEl2.textContent = '確認新增';
   document.getElementById('expense-category-display').textContent = '請選擇類別';
   document.getElementById('expense-category-display').dataset.value = '';
   document.getElementById('expense-amount').value = '';
@@ -1767,9 +1792,17 @@ window.saveExpense = async () => {
 
   showToast('儲存中...');
   try {
-    const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'expenses'), data);
-    expenses.push({ id: docRef.id, ...data });
-    showToast('支出已新增！');
+    if (window._editingExpenseId) {
+      await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', window._editingExpenseId), data);
+      const idx = expenses.findIndex(e => e.id === window._editingExpenseId);
+      if (idx > -1) expenses[idx] = { ...expenses[idx], ...data };
+      window._editingExpenseId = null;
+      showToast('支出已更新！');
+    } else {
+      const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'expenses'), data);
+      expenses.push({ id: docRef.id, ...data });
+      showToast('支出已新增！');
+    }
     navigate('expenses');
   } catch (e) {
     showToast('儲存失敗：' + e.message);
