@@ -323,7 +323,7 @@ function updateHomePage() {
   const monthlyBadge = document.querySelector('.monthly-badge');
   if (monthlyBadge) {
     monthlyBadge.style.cursor = 'pointer';
-    monthlyBadge.onclick = () => { navigate('reports'); navigate('report-stock-out'); };
+    monthlyBadge.onclick = () => { window._reportStockOutFromHome = true; navigate('reports'); setTimeout(()=>navigate('report-stock-out'),50); };
   }
   document.getElementById('shop-name-display').textContent = userSettings.companyName || '我的店';
 
@@ -1610,21 +1610,51 @@ window.saveExpenseEdit = async (expenseId) => {
 };
 
 window.showExpenseCategoryPickerInModal = (expenseId) => {
-  const html = expenseCategories.map(c =>
-    `<div class="picker-item" onclick="document.getElementById('edit-expense-cat-${expenseId}').textContent='${c}';history.back()">${c}</div>`
-  ).join('');
-  document.getElementById(`edit-expense-cat-${expenseId}`).textContent =
-    prompt('選擇類別：' + expenseCategories.join(', ')) || document.getElementById(`edit-expense-cat-${expenseId}`).textContent;
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">選擇類別</div>
+    <div class="form-card" style="margin:0">
+      ${expenseCategories.map(c => `
+        <div class="picker-item" onclick="selectExpenseCatForEdit('${expenseId}','${c}')">${c}</div>
+      `).join('')}
+    </div>`);
+};
+
+window.selectExpenseCatForEdit = (expenseId, cat) => {
+  const el = document.getElementById('edit-expense-cat-' + expenseId);
+  if (el) el.textContent = cat;
+  forceCloseModal();
+  showExpenseDetail(expenseId.replace ? expenseId : expenseId);
 };
 
 window.showDatePickerInModal = (expenseId) => {
-  const current = document.getElementById(`edit-expense-date-${expenseId}`)?.dataset.value || formatDate(new Date());
+  const current = document.getElementById('edit-expense-date-' + expenseId)?.dataset.value || formatDate(new Date());
   const d = new Date(current);
-  const newDate = prompt('輸入日期 (YYYY-MM-DD)：', formatDate(d));
-  if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-    document.getElementById(`edit-expense-date-${expenseId}`).textContent = newDate;
-    document.getElementById(`edit-expense-date-${expenseId}`).dataset.value = newDate;
-  }
+  window._editExpenseDateId = expenseId;
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">選擇日期</div>
+    <div class="date-picker-selects">
+      <select id="dp2-year" style="flex:1.5">
+        ${Array.from({length:5},(_,i)=>new Date().getFullYear()-2+i).map(y=>`<option value="${y}" ${y===d.getFullYear()?'selected':''}>${y}年</option>`).join('')}
+      </select>
+      <select id="dp2-month">
+        ${Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}" ${m===d.getMonth()+1?'selected':''}>${m}月</option>`).join('')}
+      </select>
+      <select id="dp2-day">
+        ${Array.from({length:31},(_,i)=>i+1).map(day=>`<option value="${day}" ${day===d.getDate()?'selected':''}>${day}日</option>`).join('')}
+      </select>
+    </div>
+    <button class="submit-btn" onclick="confirmExpenseDateEdit()">確認</button>`);
+};
+
+window.confirmExpenseDateEdit = () => {
+  const y = document.getElementById('dp2-year').value;
+  const m = String(document.getElementById('dp2-month').value).padStart(2,'0');
+  const d2 = String(document.getElementById('dp2-day').value).padStart(2,'0');
+  const dateStr = `${y}-${m}-${d2}`;
+  const expenseId = window._editExpenseDateId;
+  const el = document.getElementById('edit-expense-date-' + expenseId);
+  if (el) { el.textContent = dateStr; el.dataset.value = dateStr; }
+  forceCloseModal();
 };
 
 window.deleteExpense = (expenseId) => {
@@ -1721,7 +1751,13 @@ function renderReports() {
 
 function renderReportStockOut() {
   const monthStr = getReportMonthStr();
-  const orders = stockOutOrders.filter(o => o.date?.startsWith(monthStr))
+  const filterMonth = _stockOutFilterMonth !== undefined ? _stockOutFilterMonth : monthStr;
+  const orders = stockOutOrders
+    .filter(o => {
+      const matchMonth = filterMonth ? o.date?.startsWith(filterMonth) : true;
+      const matchCustomer = _stockOutFilterCustomerId ? o.customerId === _stockOutFilterCustomerId : true;
+      return matchMonth && matchCustomer;
+    })
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   const totalItems = orders.reduce((s, o) => s + (o.items || []).reduce((ss, i) => ss + i.qty, 0), 0);
@@ -1767,7 +1803,13 @@ function renderReportStockOut() {
 
 function renderReportStockIn() {
   const monthStr = getReportMonthStr();
-  const orders = stockInOrders.filter(o => o.date?.startsWith(monthStr))
+  const filterMonth = _stockInFilterMonth !== undefined ? _stockInFilterMonth : monthStr;
+  const orders = stockInOrders
+    .filter(o => {
+      const matchMonth = filterMonth ? o.date?.startsWith(filterMonth) : true;
+      const matchSupplier = _stockInFilterSupplierId ? o.supplierId === _stockInFilterSupplierId : true;
+      return matchMonth && matchSupplier;
+    })
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   const totalItems = orders.reduce((s, o) => s + (o.items || []).reduce((ss, i) => ss + i.qty, 0), 0);
@@ -2153,8 +2195,89 @@ function renderExpenseReport() {
     </div>`;
 }
 
-window.showStockOutFilter = () => {};
-window.showStockInFilter = () => {};
+window.goBackFromReportStockOut = () => {
+  if (window._reportStockOutFromHome) {
+    window._reportStockOutFromHome = false;
+    navigate('home');
+  } else {
+    navigate('reports');
+  }
+};
+
+window.showStockOutFilter = () => {
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">篩選出庫列表</div>
+    <div class="section-label">選擇月份</div>
+    <div class="form-card" style="margin-bottom:14px">
+      <div class="picker-item" onclick="setStockOutFilter('all','全部','全部客戶')">全部時間</div>
+      ${months.map(m => `<div class="picker-item" onclick="setStockOutFilter('${m}','${m}','全部客戶')">${m}</div>`).join('')}
+    </div>
+    <div class="section-label">選擇客戶</div>
+    <div class="form-card" style="margin:0">
+      <div class="picker-item" onclick="setStockOutCustomerFilter('全部客戶')">全部客戶</div>
+      ${customers.map(c => `<div class="picker-item" onclick="setStockOutCustomerFilter('${c.name}','${c.id}')">${c.name}</div>`).join('')}
+    </div>`);
+};
+
+let _stockOutFilterMonth = null;
+let _stockOutFilterCustomerId = null;
+
+window.setStockOutFilter = (month, label, sub) => {
+  _stockOutFilterMonth = month === 'all' ? null : month;
+  document.getElementById('stock-out-filter-title').textContent = label;
+  forceCloseModal();
+  renderReportStockOut();
+};
+
+window.setStockOutCustomerFilter = (name, id) => {
+  _stockOutFilterCustomerId = id || null;
+  document.getElementById('stock-out-filter-sub').textContent = name;
+  forceCloseModal();
+  renderReportStockOut();
+};
+window.showStockInFilter = () => {
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">篩選入庫列表</div>
+    <div class="section-label">選擇月份</div>
+    <div class="form-card" style="margin-bottom:14px">
+      <div class="picker-item" onclick="setStockInFilter('all','全部')">全部時間</div>
+      ${months.map(m => `<div class="picker-item" onclick="setStockInFilter('${m}','${m}')">${m}</div>`).join('')}
+    </div>
+    <div class="section-label">選擇供應商</div>
+    <div class="form-card" style="margin:0">
+      <div class="picker-item" onclick="setStockInSupplierFilter('全部供應商')">全部供應商</div>
+      ${suppliers.map(s => `<div class="picker-item" onclick="setStockInSupplierFilter('${s.name}','${s.id}')">${s.name}</div>`).join('')}
+    </div>`);
+};
+
+let _stockInFilterMonth = null;
+let _stockInFilterSupplierId = null;
+
+window.setStockInFilter = (month, label) => {
+  _stockInFilterMonth = month === 'all' ? null : month;
+  document.getElementById('stock-in-filter-title').textContent = label;
+  forceCloseModal();
+  renderReportStockIn();
+};
+
+window.setStockInSupplierFilter = (name, id) => {
+  _stockInFilterSupplierId = id || null;
+  document.getElementById('stock-in-filter-sub').textContent = name;
+  forceCloseModal();
+  renderReportStockIn();
+};
 window.showProfitRankingFilter = () => {};
 window.showPlatformFilter = () => {};
 window.showExpenseReportFilter = () => {};
