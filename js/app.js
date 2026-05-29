@@ -287,10 +287,10 @@ window.showLowStockList = () => {
       ${lowStockProducts.map(p => `
         <div class="alert-list-item" onclick="closeModal();showProductDetail('${p.id}')">
           <div style="flex:1">
-            <div style="color:var(--text2);font-size:15px;font-weight:500">${p.name}</div>
-            <div style="color:var(--text4);font-size:13px;margin-top:2px">${p.model || ''}</div>
+            <div style="color:var(--text2);font-size:17px;font-weight:500">${p.name}</div>
+            <div style="color:var(--text4);font-size:15px;margin-top:2px">${p.model || ''}</div>
           </div>
-          <div style="color:${p.stock === 0 ? 'var(--red)' : 'var(--amber)'};font-size:15px;font-weight:500">${p.stock} 件</div>
+          <div style="color:${p.stock === 0 ? 'var(--red)' : 'var(--amber)'};font-size:17px;font-weight:500">${p.stock} 件</div>
           <i class="ti ti-chevron-right" style="color:var(--text5);margin-left:8px"></i>
         </div>
       `).join('')}
@@ -312,10 +312,10 @@ window.showStaleStockList = () => {
       ${staleProducts.map(p => `
         <div class="alert-list-item" onclick="closeModal();showProductDetail('${p.id}')">
           <div style="flex:1">
-            <div style="color:var(--text2);font-size:15px;font-weight:500">${p.name}</div>
-            <div style="color:var(--text4);font-size:13px;margin-top:2px">${p.lastOutDate ? '最後出庫：'+p.lastOutDate : '從未出庫'}</div>
+            <div style="color:var(--text2);font-size:17px;font-weight:500">${p.name}</div>
+            <div style="color:var(--text4);font-size:15px;margin-top:2px">${p.lastOutDate ? '最後出庫：'+p.lastOutDate : '從未出庫'}</div>
           </div>
-          <div style="color:var(--text2);font-size:15px;font-weight:500">${p.stock} 件</div>
+          <div style="color:var(--text2);font-size:17px;font-weight:500">${p.stock} 件</div>
           <i class="ti ti-chevron-right" style="color:var(--text5);margin-left:8px"></i>
         </div>
       `).join('')}
@@ -596,12 +596,12 @@ window.showProductDetail = (productId) => {
 
   document.getElementById('product-detail-content').innerHTML = `
     <div class="product-detail-img" style="${p.imageUrl ? '' : 'background:var(--bg2);display:flex;align-items:center;justify-content:center;height:200px'}">
-      ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" style="width:100%;height:200px;object-fit:cover">` : `<i class="ti ti-photo" style="font-size:64px;color:var(--text5)"></i>`}
+      ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" style="width:100%;height:200px;object-fit:cover">` : `<i class="ti ti-photo" style="font-size:66px;color:var(--text5)"></i>`}
     </div>
     <div style="padding:14px">
       <div style="margin-bottom:12px">
-        <div style="font-size:20px;font-weight:500;color:var(--text);margin-bottom:6px">${p.name}</div>
-        <span style="display:inline-block;background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--text3);font-size:13px">${p.category || '未分類'}</span>
+        <div style="font-size:22px;font-weight:500;color:var(--text);margin-bottom:6px">${p.name}</div>
+        <span style="display:inline-block;background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:3px 10px;color:var(--text3);font-size:15px">${p.category || '未分類'}</span>
       </div>
 
       <div class="form-card">
@@ -642,8 +642,8 @@ window.showProductDetail = (productId) => {
           <span class="form-label">條碼</span>
           <span class="form-input" style="color:var(--text3);font-family:monospace">${p.barcode || '無'}</span>
           <div style="display:flex;align-items:center;gap:4px;background:var(--bg3);border-radius:6px;padding:4px 8px">
-            <i class="ti ti-barcode" style="color:var(--blue);font-size:15px"></i>
-            <span style="color:var(--blue);font-size:11px">查看列印</span>
+            <i class="ti ti-barcode" style="color:var(--blue);font-size:17px"></i>
+            <span style="color:var(--blue);font-size:13px">查看列印</span>
           </div>
         </div>
         ${p.imageOriginalUrl ? `
@@ -651,8 +651,8 @@ window.showProductDetail = (productId) => {
           <span class="form-label">原始圖片</span>
           <span class="form-input" style="color:var(--text4)">上架用高畫質原圖</span>
           <div style="display:flex;align-items:center;gap:4px;background:#1a2818;border-radius:6px;padding:4px 8px">
-            <i class="ti ti-download" style="color:var(--green);font-size:15px"></i>
-            <span style="color:var(--green);font-size:11px">下載</span>
+            <i class="ti ti-download" style="color:var(--green);font-size:17px"></i>
+            <span style="color:var(--green);font-size:13px">下載</span>
           </div>
         </div>` : ''}
       </div>
@@ -724,7 +724,7 @@ window.showBarcode = (barcode, name) => {
     <div class="barcode-display">
       <canvas id="barcode-canvas"></canvas>
       <p>${name}</p>
-      <p style="color:var(--text4);font-size:12px;margin-top:4px;font-family:monospace">${barcode}</p>
+      <p style="color:var(--text4);font-size:14px;margin-top:4px;font-family:monospace">${barcode}</p>
     </div>
     <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px">
       <button class="submit-btn" onclick="saveBarcodeImage()">💾 儲存圖片</button>
@@ -822,12 +822,12 @@ function renderStockInItems() {
         <div class="input-group">
           <div class="input-group-label">數量</div>
           <input type="number" value="${item.qty}" min="1"
-            oninput="updateStockInItem(${idx},'qty',this.value)" style="color:var(--text2);font-size:16px;font-weight:500">
+            oninput="updateStockInItem(${idx},'qty',this.value)" style="color:var(--text2);font-size:18px;font-weight:500">
         </div>
         <div class="input-group">
           <div class="input-group-label">進價（每件）</div>
           <input type="number" value="${item.cost}" min="0"
-            oninput="updateStockInItem(${idx},'cost',this.value)" style="color:var(--amber);font-size:16px;font-weight:500">
+            oninput="updateStockInItem(${idx},'cost',this.value)" style="color:var(--amber);font-size:18px;font-weight:500">
         </div>
       </div>
     </div>`).join('');
@@ -974,13 +974,13 @@ function renderStockOutItems() {
           <div class="input-group">
             <div class="input-group-label">數量</div>
             <input type="number" value="${item.qty}" min="1"
-              oninput="updateStockOutItem(${idx},'qty',this.value)" style="color:var(--text2);font-size:16px;font-weight:500">
+              oninput="updateStockOutItem(${idx},'qty',this.value)" style="color:var(--text2);font-size:18px;font-weight:500">
             <div class="stock-hint">庫存剩 ${p ? p.stock : 0} 件</div>
           </div>
           <div class="input-group">
             <div class="input-group-label">售價（每件）</div>
             <input type="number" value="${item.price}" min="0"
-              oninput="updateStockOutItem(${idx},'price',this.value)" style="color:var(--amber);font-size:16px;font-weight:500">
+              oninput="updateStockOutItem(${idx},'price',this.value)" style="color:var(--amber);font-size:18px;font-weight:500">
             <div class="stock-hint">預設 $${item.defaultPrice}</div>
           </div>
         </div>
@@ -1134,12 +1134,12 @@ function renderCustomerList() {
       <div class="customer-item" onclick="showCustomerDetail('${c.id}')">
         <div class="customer-avatar-circle" style="background:${color}22;color:${color}">${initials}</div>
         <div style="flex:1">
-          <div style="color:var(--text2);font-size:15px;font-weight:500">${c.name}</div>
-          <div style="color:var(--text4);font-size:13px;margin-top:2px">本月 ${monthOrders.length} 筆出庫</div>
+          <div style="color:var(--text2);font-size:17px;font-weight:500">${c.name}</div>
+          <div style="color:var(--text4);font-size:15px;margin-top:2px">本月 ${monthOrders.length} 筆出庫</div>
         </div>
         <div style="text-align:right;margin-right:4px">
-          <div style="color:var(--green);font-size:15px;font-weight:500">$${monthAmount.toLocaleString()}</div>
-          <div style="color:var(--text4);font-size:12px">本月消費</div>
+          <div style="color:var(--green);font-size:17px;font-weight:500">$${monthAmount.toLocaleString()}</div>
+          <div style="color:var(--text4);font-size:14px">本月消費</div>
         </div>
         <i class="ti ti-chevron-right" style="color:var(--text5)"></i>
       </div>`;
@@ -1211,10 +1211,10 @@ window.showCustomerDetail = (customerId) => {
   document.getElementById('customer-detail-content').innerHTML = `
     <div style="padding:14px">
       <div class="customer-header-card">
-        <div class="customer-avatar-circle" style="background:${color}22;color:${color};width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:500;flex-shrink:0">${initials}</div>
+        <div class="customer-avatar-circle" style="background:${color}22;color:${color};width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:500;flex-shrink:0">${initials}</div>
         <div style="flex:1">
-          <div style="color:var(--text);font-size:18px;font-weight:500">${c.name}</div>
-          <div style="color:var(--text4);font-size:12px;margin-top:3px">${c.phone || '未填寫電話'}</div>
+          <div style="color:var(--text);font-size:20px;font-weight:500">${c.name}</div>
+          <div style="color:var(--text4);font-size:14px;margin-top:3px">${c.phone || '未填寫電話'}</div>
         </div>
         <button class="text-btn" onclick="editCustomer('${c.id}')">編輯</button>
       </div>
@@ -1298,12 +1298,12 @@ window.showCustomerOrders = (customerId, period) => {
       ${orders.map(o => `
         <div class="order-item">
           <div style="flex:1">
-            <div style="color:var(--text3);font-size:13px">${o.date}</div>
-            <div style="color:var(--text2);font-size:12px;margin-top:2px">單號：${o.orderNum}</div>
+            <div style="color:var(--text3);font-size:15px">${o.date}</div>
+            <div style="color:var(--text2);font-size:14px;margin-top:2px">單號：${o.orderNum}</div>
           </div>
           <div style="text-align:right">
-            <div style="color:var(--green);font-size:15px;font-weight:500">$${(o.totalAmount||0).toLocaleString()}</div>
-            <div style="color:var(--text4);font-size:12px">${(o.items||[]).reduce((s,i)=>s+i.qty,0)} 件</div>
+            <div style="color:var(--green);font-size:17px;font-weight:500">$${(o.totalAmount||0).toLocaleString()}</div>
+            <div style="color:var(--text4);font-size:14px">${(o.items||[]).reduce((s,i)=>s+i.qty,0)} 件</div>
           </div>
         </div>`).join('')}
     </div>`}`);
@@ -1347,12 +1347,12 @@ function renderExpenseList() {
         <div class="expense-item" onclick="showExpenseDetail('${e.id}')">
           <div class="expense-icon" style="background:${icon.bg}"><i class="${icon.icon}" style="color:${icon.color}"></i></div>
           <div style="flex:1">
-            <div style="color:var(--text2);font-size:15px;font-weight:500">${e.category}</div>
-            <div style="color:var(--text4);font-size:13px;margin-top:2px">${e.date}</div>
+            <div style="color:var(--text2);font-size:17px;font-weight:500">${e.category}</div>
+            <div style="color:var(--text4);font-size:15px;margin-top:2px">${e.date}</div>
           </div>
           <div style="text-align:right">
-            <div style="color:var(--red);font-size:15px;font-weight:500">-$${(e.amount||0).toLocaleString()}</div>
-            ${e.notes ? `<div style="color:var(--text4);font-size:12px">${e.notes}</div>` : ''}
+            <div style="color:var(--red);font-size:17px;font-weight:500">-$${(e.amount||0).toLocaleString()}</div>
+            ${e.notes ? `<div style="color:var(--text4);font-size:14px">${e.notes}</div>` : ''}
           </div>
           <i class="ti ti-chevron-right" style="color:var(--text5);margin-left:4px"></i>
         </div>`;
@@ -1513,17 +1513,17 @@ function renderReportStockOut() {
 
   container.innerHTML = Object.entries(groups).map(([date, dateOrders]) => `
     <div style="margin-bottom:14px">
-      <div style="color:var(--text3);font-size:16px;font-weight:500;margin-bottom:8px">${date}</div>
+      <div style="color:var(--text3);font-size:18px;font-weight:500;margin-bottom:8px">${date}</div>
       <div class="form-card" style="margin:0">
         ${dateOrders.map(o => `
           <div class="order-item" onclick="showStockOutDetail('${o.id}')">
             <div class="order-icon" style="background:#2a1818"><i class="ti ti-package-export" style="color:var(--red)"></i></div>
             <div style="flex:1">
-              <div style="color:var(--text2);font-size:15px;font-weight:500">${o.customerName}</div>
-              <div style="color:var(--text4);font-size:13px;margin-top:2px">單號：${o.orderNum} ･ ${(o.items||[]).reduce((s,i)=>s+i.qty,0)}件商品</div>
+              <div style="color:var(--text2);font-size:17px;font-weight:500">${o.customerName}</div>
+              <div style="color:var(--text4);font-size:15px;margin-top:2px">單號：${o.orderNum} ･ ${(o.items||[]).reduce((s,i)=>s+i.qty,0)}件商品</div>
             </div>
             <div style="text-align:right">
-              <div style="color:var(--green);font-size:15px;font-weight:500">$${(o.totalAmount||0).toLocaleString()}</div>
+              <div style="color:var(--green);font-size:17px;font-weight:500">$${(o.totalAmount||0).toLocaleString()}</div>
             </div>
             <i class="ti ti-chevron-right" style="color:var(--text5);margin-left:4px"></i>
           </div>`).join('')}
@@ -1558,17 +1558,17 @@ function renderReportStockIn() {
 
   container.innerHTML = Object.entries(groups).map(([date, dateOrders]) => `
     <div style="margin-bottom:14px">
-      <div style="color:var(--text3);font-size:16px;font-weight:500;margin-bottom:8px">${date}</div>
+      <div style="color:var(--text3);font-size:18px;font-weight:500;margin-bottom:8px">${date}</div>
       <div class="form-card" style="margin:0">
         ${dateOrders.map(o => `
           <div class="order-item" onclick="showStockInDetail('${o.id}')">
             <div class="order-icon" style="background:#1a2818"><i class="ti ti-package-import" style="color:var(--green)"></i></div>
             <div style="flex:1">
-              <div style="color:var(--text2);font-size:15px;font-weight:500">${o.supplierName || '無供應商'}</div>
-              <div style="color:var(--text4);font-size:13px;margin-top:2px">單號：${o.orderNum} ･ ${(o.items||[]).length}款商品</div>
+              <div style="color:var(--text2);font-size:17px;font-weight:500">${o.supplierName || '無供應商'}</div>
+              <div style="color:var(--text4);font-size:15px;margin-top:2px">單號：${o.orderNum} ･ ${(o.items||[]).length}款商品</div>
             </div>
             <div style="text-align:right">
-              <div style="color:var(--blue);font-size:15px;font-weight:500">$${(o.totalCost||0).toLocaleString()}</div>
+              <div style="color:var(--blue);font-size:17px;font-weight:500">$${(o.totalCost||0).toLocaleString()}</div>
             </div>
             <i class="ti ti-chevron-right" style="color:var(--text5);margin-left:4px"></i>
           </div>`).join('')}
@@ -1582,9 +1582,9 @@ window.showStockOutDetail = (orderId) => {
   document.getElementById('stock-out-detail-content').innerHTML = `
     <div style="padding:14px">
       <div style="text-align:center;margin-bottom:16px">
-        <div style="font-size:18px;font-weight:500;color:var(--blue)">出庫單</div>
-        <div style="color:var(--text4);font-size:12px;margin-top:4px">單號：${o.orderNum}</div>
-        <div style="display:inline-block;background:#1a3828;border:0.5px solid #2a5838;border-radius:20px;padding:4px 16px;color:var(--green);font-size:12px;margin-top:8px">已出庫</div>
+        <div style="font-size:20px;font-weight:500;color:var(--blue)">出庫單</div>
+        <div style="color:var(--text4);font-size:14px;margin-top:4px">單號：${o.orderNum}</div>
+        <div style="display:inline-block;background:#1a3828;border:0.5px solid #2a5838;border-radius:20px;padding:4px 16px;color:var(--green);font-size:14px;margin-top:8px">已出庫</div>
       </div>
       <div class="form-card">
         <div class="form-row"><span class="form-label">出庫客戶</span><span class="form-input">${o.customerName}</span></div>
@@ -1598,11 +1598,11 @@ window.showStockOutDetail = (orderId) => {
               ${item.imageUrl ? `<img src="${item.imageUrl}">` : `<i class="ti ti-photo"></i>`}
             </div>
             <div style="flex:1;margin-left:8px">
-              <div style="color:var(--text2);font-size:15px">${item.name}</div>
-              <div style="color:var(--text4);font-size:13px">${item.model || ''}</div>
+              <div style="color:var(--text2);font-size:17px">${item.name}</div>
+              <div style="color:var(--text4);font-size:15px">${item.model || ''}</div>
             </div>
             <div style="text-align:right">
-              <div style="color:var(--text2);font-size:15px">$${item.price} x${item.qty}</div>
+              <div style="color:var(--text2);font-size:17px">$${item.price} x${item.qty}</div>
             </div>
           </div>`).join('')}
       </div>
@@ -1642,9 +1642,9 @@ window.showStockInDetail = (orderId) => {
   document.getElementById('stock-in-detail-content').innerHTML = `
     <div style="padding:14px">
       <div style="text-align:center;margin-bottom:16px">
-        <div style="font-size:18px;font-weight:500;color:var(--green)">入庫單</div>
-        <div style="color:var(--text4);font-size:12px;margin-top:4px">單號：${o.orderNum}</div>
-        <div style="display:inline-block;background:#1a3828;border:0.5px solid #2a5838;border-radius:20px;padding:4px 16px;color:var(--green);font-size:12px;margin-top:8px">已入庫</div>
+        <div style="font-size:20px;font-weight:500;color:var(--green)">入庫單</div>
+        <div style="color:var(--text4);font-size:14px;margin-top:4px">單號：${o.orderNum}</div>
+        <div style="display:inline-block;background:#1a3828;border:0.5px solid #2a5838;border-radius:20px;padding:4px 16px;color:var(--green);font-size:14px;margin-top:8px">已入庫</div>
       </div>
       <div class="form-card">
         <div class="form-row"><span class="form-label">入庫日期</span><span class="form-input">${o.date}</span></div>
@@ -1658,11 +1658,11 @@ window.showStockInDetail = (orderId) => {
               ${item.imageUrl ? `<img src="${item.imageUrl}">` : `<i class="ti ti-photo"></i>`}
             </div>
             <div style="flex:1;margin-left:8px">
-              <div style="color:var(--text2);font-size:15px">${item.name}</div>
-              <div style="color:var(--text4);font-size:13px">${item.model || ''}</div>
+              <div style="color:var(--text2);font-size:17px">${item.name}</div>
+              <div style="color:var(--text4);font-size:15px">${item.model || ''}</div>
             </div>
             <div style="text-align:right">
-              <div style="color:var(--text2);font-size:15px">$${item.cost} x${item.qty}</div>
+              <div style="color:var(--text2);font-size:17px">$${item.cost} x${item.qty}</div>
             </div>
           </div>`).join('')}
       </div>
@@ -1731,10 +1731,10 @@ function renderProfitRanking() {
               ${p.imageUrl ? `<img src="${p.imageUrl}">` : `<i class="ti ti-photo"></i>`}
             </div>
             <div style="flex:1">
-              <div style="color:var(--text2);font-size:15px;font-weight:500">${p.name}</div>
-              <div style="color:var(--text4);font-size:13px;margin-top:2px">已售 ${p.totalQty} 件</div>
+              <div style="color:var(--text2);font-size:17px;font-weight:500">${p.name}</div>
+              <div style="color:var(--text4);font-size:15px;margin-top:2px">已售 ${p.totalQty} 件</div>
             </div>
-            <div style="color:var(--green);font-size:16px;font-weight:500">$${p.profit.toLocaleString()}</div>
+            <div style="color:var(--green);font-size:18px;font-weight:500">$${p.profit.toLocaleString()}</div>
           </div>
           <div class="bar-wrap">
             <div class="bar-bg"><div class="bar-fill" style="width:${barWidth}%;background:${barColors[idx%4]}"></div></div>
@@ -1808,12 +1808,12 @@ function renderPlatformReport() {
         return `
           <div style="padding:12px 14px;border-bottom:0.5px solid var(--border)">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-              <div style="width:36px;height:36px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;flex-shrink:0">${initials}</div>
+              <div style="width:36px;height:36px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500;flex-shrink:0">${initials}</div>
               <div style="flex:1">
-                <div style="color:var(--text2);font-size:15px;font-weight:500">${p.name}</div>
-                <div style="color:var(--text4);font-size:13px;margin-top:2px">本月 ${p.orders} 筆出庫</div>
+                <div style="color:var(--text2);font-size:17px;font-weight:500">${p.name}</div>
+                <div style="color:var(--text4);font-size:15px;margin-top:2px">本月 ${p.orders} 筆出庫</div>
               </div>
-              <div style="color:var(--green);font-size:16px;font-weight:500">$${p.profit.toLocaleString()}</div>
+              <div style="color:var(--green);font-size:18px;font-weight:500">$${p.profit.toLocaleString()}</div>
             </div>
             <div class="platform-stats">
               <div class="pstat"><div class="pstat-label">出庫金額</div><div class="pstat-value">$${p.revenue.toLocaleString()}</div></div>
@@ -1882,12 +1882,12 @@ function renderExpenseReport() {
           <div class="expense-item">
             <div class="expense-icon" style="background:${icon.bg}"><i class="${icon.icon}" style="color:${icon.color}"></i></div>
             <div style="flex:1">
-              <div style="color:var(--text2);font-size:15px;font-weight:500">${e.category}</div>
-              <div style="color:var(--text4);font-size:13px;margin-top:2px">${e.date}</div>
+              <div style="color:var(--text2);font-size:17px;font-weight:500">${e.category}</div>
+              <div style="color:var(--text4);font-size:15px;margin-top:2px">${e.date}</div>
             </div>
             <div style="text-align:right">
-              <div style="color:var(--red);font-size:15px;font-weight:500">-$${(e.amount||0).toLocaleString()}</div>
-              ${e.notes ? `<div style="color:var(--text4);font-size:12px">${e.notes}</div>` : ''}
+              <div style="color:var(--red);font-size:17px;font-weight:500">-$${(e.amount||0).toLocaleString()}</div>
+              ${e.notes ? `<div style="color:var(--text4);font-size:14px">${e.notes}</div>` : ''}
             </div>
           </div>`;
       }).join('')}
@@ -1957,7 +1957,7 @@ window.editSetting = (key) => {
     <div class="modal-title">${labels[key]}</div>
     <div class="form-card" style="margin-bottom:16px">
       <div class="form-row" style="border-bottom:none">
-        <input class="form-input" type="${types[key]}" id="setting-edit-input" value="${values[key]}" style="font-size:16px">
+        <input class="form-input" type="${types[key]}" id="setting-edit-input" value="${values[key]}" style="font-size:18px">
       </div>
     </div>
     <button class="submit-btn" onclick="saveSetting('${key}')">儲存</button>`);
@@ -2033,10 +2033,10 @@ window.exportData = () => {
 window.clearAllData = () => {
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title" style="color:var(--red)">清除所有資料</div>
-    <p style="color:var(--text2);font-size:14px;margin-bottom:16px;text-align:center">請輸入「確認」兩個字以確認清除所有資料，此操作無法復原。</p>
+    <p style="color:var(--text2);font-size:16px;margin-bottom:16px;text-align:center">請輸入「確認」兩個字以確認清除所有資料，此操作無法復原。</p>
     <div class="form-card" style="margin-bottom:16px">
       <div class="form-row" style="border-bottom:none">
-        <input class="form-input" type="text" id="clear-confirm-input" placeholder='輸入「確認」' style="font-size:16px">
+        <input class="form-input" type="text" id="clear-confirm-input" placeholder='輸入「確認」' style="font-size:18px">
       </div>
     </div>
     <button class="submit-btn red" onclick="executeClearData()">清除</button>`);
@@ -2080,7 +2080,7 @@ window.addNewCategory = () => {
     <div class="modal-title">新增商品類別</div>
     <div class="form-card" style="margin-bottom:16px">
       <div class="form-row" style="border-bottom:none">
-        <input class="form-input" type="text" id="new-category-input" placeholder="輸入類別名稱" style="font-size:16px">
+        <input class="form-input" type="text" id="new-category-input" placeholder="輸入類別名稱" style="font-size:18px">
       </div>
     </div>
     <button class="submit-btn" onclick="saveNewCategory()">新增</button>`);
@@ -2124,7 +2124,7 @@ window.addNewExpenseCategory = () => {
     <div class="modal-title">新增支出類別</div>
     <div class="form-card" style="margin-bottom:16px">
       <div class="form-row" style="border-bottom:none">
-        <input class="form-input" type="text" id="new-expense-cat-input" placeholder="輸入類別名稱" style="font-size:16px">
+        <input class="form-input" type="text" id="new-expense-cat-input" placeholder="輸入類別名稱" style="font-size:18px">
       </div>
     </div>
     <button class="submit-btn" onclick="saveNewExpenseCategory()">新增</button>`);
@@ -2167,7 +2167,7 @@ window.addNewSupplier = () => {
     <div class="modal-title">新增供應商</div>
     <div class="form-card" style="margin-bottom:16px">
       <div class="form-row" style="border-bottom:none">
-        <input class="form-input" type="text" id="new-supplier-input" placeholder="輸入供應商名稱" style="font-size:16px">
+        <input class="form-input" type="text" id="new-supplier-input" placeholder="輸入供應商名稱" style="font-size:18px">
       </div>
     </div>
     <button class="submit-btn" onclick="saveNewSupplier()">新增</button>`);
@@ -2199,7 +2199,7 @@ function showProductPicker(callback) {
     <div class="search-bar" style="margin-bottom:8px">
       <i class="ti ti-search"></i>
       <input type="text" placeholder="搜尋商品" id="picker-search"
-        oninput="filterPickerProducts()" style="background:none;border:none;outline:none;color:var(--text2);font-size:15px;flex:1;width:100%">
+        oninput="filterPickerProducts()" style="background:none;border:none;outline:none;color:var(--text2);font-size:17px;flex:1;width:100%">
     </div>
     <div id="picker-product-list">
       ${renderPickerList(sorted, callback)}
@@ -2223,8 +2223,8 @@ function renderPickerList(prods, callback) {
         ${p.imageUrl ? `<img src="${p.imageUrl}">` : `<i class="ti ti-photo"></i>`}
       </div>
       <div style="flex:1">
-        <div style="color:var(--text2);font-size:15px">${p.name}</div>
-        <div style="color:var(--text4);font-size:13px">${p.model || ''} 庫存: ${p.stock}</div>
+        <div style="color:var(--text2);font-size:17px">${p.name}</div>
+        <div style="color:var(--text4);font-size:15px">${p.model || ''} 庫存: ${p.stock}</div>
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--text4);padding:20px">沒有商品</p>';
 }
@@ -2265,7 +2265,7 @@ window.addCategoryFromPicker = () => {
       <div class="modal-title">新增商品類別</div>
       <div class="form-card" style="margin-bottom:16px">
         <div class="form-row" style="border-bottom:none">
-          <input class="form-input" type="text" id="new-cat-picker-input" placeholder="輸入類別名稱" style="font-size:16px">
+          <input class="form-input" type="text" id="new-cat-picker-input" placeholder="輸入類別名稱" style="font-size:18px">
         </div>
       </div>
       <button class="submit-btn" onclick="saveCategoryFromPicker()">新增並選擇</button>`);
@@ -2315,7 +2315,7 @@ window.addSupplierFromPicker = () => {
       <div class="modal-title">新增供應商</div>
       <div class="form-card" style="margin-bottom:16px">
         <div class="form-row" style="border-bottom:none">
-          <input class="form-input" type="text" id="new-supplier-picker-input" placeholder="輸入供應商名稱" style="font-size:16px">
+          <input class="form-input" type="text" id="new-supplier-picker-input" placeholder="輸入供應商名稱" style="font-size:18px">
         </div>
       </div>
       <button class="submit-btn" onclick="saveSupplierFromPicker()">新增並選擇</button>`);
@@ -2376,7 +2376,7 @@ window.addExpenseCategoryFromPicker = () => {
       <div class="modal-title">新增支出類別</div>
       <div class="form-card" style="margin-bottom:16px">
         <div class="form-row" style="border-bottom:none">
-          <input class="form-input" type="text" id="new-exp-cat-picker" placeholder="輸入類別名稱" style="font-size:16px">
+          <input class="form-input" type="text" id="new-exp-cat-picker" placeholder="輸入類別名稱" style="font-size:18px">
         </div>
       </div>
       <button class="submit-btn" onclick="saveExpenseCategoryFromPicker()">新增並選擇</button>`);
@@ -2482,7 +2482,7 @@ function startScanning() {
         <div class="modal-title">輸入條碼</div>
         <div class="form-card" style="margin-bottom:16px">
           <div class="form-row" style="border-bottom:none">
-            <input class="form-input" type="text" id="manual-barcode-input" placeholder="輸入條碼號碼" style="font-size:16px">
+            <input class="form-input" type="text" id="manual-barcode-input" placeholder="輸入條碼號碼" style="font-size:18px">
           </div>
         </div>
         <button class="submit-btn" onclick="submitManualBarcode()">確認</button>`);
