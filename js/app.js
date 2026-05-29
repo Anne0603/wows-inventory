@@ -2818,8 +2818,8 @@ function renderCategoriesManagement() {
         return `
           <div class="manage-item">
             <div style="flex:1">
-              <div style="color:var(--text2);font-size:15px">${cat}</div>
-              <div style="color:var(--text4);font-size:12px;margin-top:2px">${count} 件商品</div>
+              <div style="color:var(--text2);font-size:17px;font-weight:500">${cat}</div>
+              <div style="color:var(--text4);font-size:14px;margin-top:3px">${count} 件商品</div>
             </div>
             <button onclick="editCategoryItem(${idx})" style="background:none;border:none;color:var(--blue);font-size:16px;cursor:pointer;padding:4px 8px"><i class="ti ti-edit"></i></button>
             <button class="manage-item-delete" onclick="deleteCategoryItem(${idx})"><i class="ti ti-trash"></i></button>
@@ -2916,8 +2916,8 @@ function renderExpenseCategoriesManagement() {
       return `
         <div class="manage-item">
           <div style="flex:1">
-            <div style="color:var(--text2);font-size:15px">${cat}</div>
-            <div style="color:var(--text4);font-size:12px;margin-top:2px">${count} 筆支出</div>
+            <div style="color:var(--text2);font-size:17px;font-weight:500">${cat}</div>
+            <div style="color:var(--text4);font-size:14px;margin-top:3px">${count} 筆支出</div>
           </div>
           <button onclick="editExpenseCategoryItem(${idx})" style="background:none;border:none;color:var(--blue);font-size:16px;cursor:pointer;padding:4px 8px"><i class="ti ti-edit"></i></button>
           <button class="manage-item-delete" onclick="deleteExpenseCategoryItem(${idx})"><i class="ti ti-trash"></i></button>
@@ -3009,7 +3009,7 @@ function renderSuppliersManagement() {
     : `<div class="form-card" style="margin:14px">
       ${suppliers.map((s, idx) => `
         <div class="manage-item">
-          <span class="manage-item-name">${s.name}</span>
+          <div style="flex:1"><div style="color:var(--text2);font-size:17px;font-weight:500">${s.name}</div></div>
           <button class="manage-item-delete" onclick="deleteSupplierItem(${idx})"><i class="ti ti-trash"></i></button>
         </div>`).join('')}
     </div>`;
