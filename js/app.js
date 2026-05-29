@@ -2356,12 +2356,21 @@ window.editStockInOrder = (orderId) => {
 
 function renderProfitRanking() {
   const monthStr = getReportMonthStr();
-  const monthOut = stockOutOrders.filter(o => o.date?.startsWith(monthStr));
+  const filterMonth = _profitRankingMonth !== undefined ? _profitRankingMonth : monthStr;
+  const monthOut = stockOutOrders.filter(o => {
+    const matchMonth = filterMonth ? o.date?.startsWith(filterMonth) : true;
+    return matchMonth;
+  });
 
   // Calculate profit per product
   const productProfits = {};
   monthOut.forEach(order => {
     (order.items || []).forEach(item => {
+      // Apply category filter
+      if (_profitRankingCategory) {
+        const p = products.find(x => x.id === item.productId);
+        if (!p || p.category !== _profitRankingCategory) return;
+      }
       if (!productProfits[item.productId]) {
         productProfits[item.productId] = {
           name: item.name, model: item.model, imageUrl: item.imageUrl,
@@ -2425,7 +2434,10 @@ function renderProfitRanking() {
 
 function renderPlatformReport() {
   const monthStr = getReportMonthStr();
-  const monthOut = stockOutOrders.filter(o => o.date?.startsWith(monthStr));
+  const filterMonth = _platformMonth !== undefined ? _platformMonth : monthStr;
+  const monthOut = stockOutOrders.filter(o =>
+    filterMonth ? o.date?.startsWith(filterMonth) : true
+  );
 
   const platformData = {};
   monthOut.forEach(order => {
@@ -2505,7 +2517,12 @@ function renderPlatformReport() {
 
 function renderExpenseReport() {
   const monthStr = getReportMonthStr();
-  const monthExp = expenses.filter(e => e.date?.startsWith(monthStr));
+  const filterMonth = _expenseReportMonth !== undefined ? _expenseReportMonth : monthStr;
+  const monthExp = expenses.filter(e => {
+    const matchMonth = filterMonth ? e.date?.startsWith(filterMonth) : true;
+    const matchCat = _expenseReportCategory ? e.category === _expenseReportCategory : true;
+    return matchMonth && matchCat;
+  });
   const total = monthExp.reduce((s, e) => s + (e.amount || 0), 0);
 
   document.getElementById('re-total').textContent = `$${total.toLocaleString()}`;
@@ -2655,9 +2672,117 @@ window.setStockInSupplierFilter = (name, id) => {
   forceCloseModal();
   renderReportStockIn();
 };
-window.showProfitRankingFilter = () => {};
-window.showPlatformFilter = () => {};
-window.showExpenseReportFilter = () => {};
+// Filter state variables
+let _profitRankingMonth = null;
+let _profitRankingCategory = null;
+let _platformMonth = null;
+let _expenseReportMonth = null;
+let _expenseReportCategory = null;
+
+window.showProfitRankingFilter = () => {
+  const months = getRecentMonths();
+  const monthStr = getReportMonthStr();
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">篩選商品利潤</div>
+    <div class="section-label">選擇月份</div>
+    <div class="form-card" style="margin-bottom:14px">
+      <div class="picker-item" onclick="setProfitFilter('month','all','全部時間')">
+        全部時間 ${!_profitRankingMonth ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>
+      ${months.map(m => `<div class="picker-item" onclick="setProfitFilter('month','${m}','${m}')">
+        ${m} ${_profitRankingMonth===m ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>`).join('')}
+    </div>
+    <div class="section-label">選擇類別</div>
+    <div class="form-card" style="margin:0">
+      <div class="picker-item" onclick="setProfitFilter('cat','all','全部類別')">
+        全部類別 ${!_profitRankingCategory ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>
+      ${productCategories.map(c => `<div class="picker-item" onclick="setProfitFilter('cat','${c}','${c}')">
+        ${c} ${_profitRankingCategory===c ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>`).join('')}
+    </div>`);
+};
+
+window.setProfitFilter = (type, value, label) => {
+  if (type === 'month') {
+    _profitRankingMonth = value === 'all' ? null : value;
+    document.getElementById('profit-ranking-filter-title').textContent = label;
+  } else {
+    _profitRankingCategory = value === 'all' ? null : value;
+    document.getElementById('profit-ranking-filter-sub').textContent = label;
+  }
+  forceCloseModal();
+  renderProfitRanking();
+};
+
+window.showPlatformFilter = () => {
+  const months = getRecentMonths();
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">篩選平台比較</div>
+    <div class="section-label">選擇月份</div>
+    <div class="form-card" style="margin:0">
+      <div class="picker-item" onclick="setPlatformFilter('all','全部時間')">
+        全部時間 ${!_platformMonth ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>
+      ${months.map(m => `<div class="picker-item" onclick="setPlatformFilter('${m}','${m}')">
+        ${m} ${_platformMonth===m ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>`).join('')}
+    </div>`);
+};
+
+window.setPlatformFilter = (value, label) => {
+  _platformMonth = value === 'all' ? null : value;
+  document.getElementById('platform-filter-title').textContent = label;
+  forceCloseModal();
+  renderPlatformReport();
+};
+
+window.showExpenseReportFilter = () => {
+  const months = getRecentMonths();
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">篩選支出明細</div>
+    <div class="section-label">選擇月份</div>
+    <div class="form-card" style="margin-bottom:14px">
+      <div class="picker-item" onclick="setExpenseReportFilter('month','all','全部時間')">
+        全部時間 ${!_expenseReportMonth ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>
+      ${months.map(m => `<div class="picker-item" onclick="setExpenseReportFilter('month','${m}','${m}')">
+        ${m} ${_expenseReportMonth===m ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>`).join('')}
+    </div>
+    <div class="section-label">選擇類別</div>
+    <div class="form-card" style="margin:0">
+      <div class="picker-item" onclick="setExpenseReportFilter('cat','all','全部類別')">
+        全部類別 ${!_expenseReportCategory ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>
+      ${expenseCategories.map(c => `<div class="picker-item" onclick="setExpenseReportFilter('cat','${c}','${c}')">
+        ${c} ${_expenseReportCategory===c ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+      </div>`).join('')}
+    </div>`);
+};
+
+window.setExpenseReportFilter = (type, value, label) => {
+  if (type === 'month') {
+    _expenseReportMonth = value === 'all' ? null : value;
+    document.getElementById('expense-report-filter-title').textContent = label;
+  } else {
+    _expenseReportCategory = value === 'all' ? null : value;
+    document.getElementById('expense-report-filter-sub').textContent = label;
+  }
+  forceCloseModal();
+  renderExpenseReport();
+};
+
+function getRecentMonths() {
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  return months;
+}
 
 // ==================== SETTINGS ====================
 function renderSettings() {
