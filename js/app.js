@@ -1182,6 +1182,18 @@ window.confirmStockIn = async () => {
     }
 
     if (window._editingStockInId) {
+      // Restore old stock first
+      const oldOrder = stockInOrders.find(x => x.id === window._editingStockInId);
+      if (oldOrder) {
+        for (const oldItem of oldOrder.items || []) {
+          const p = products.find(x => x.id === oldItem.productId);
+          if (p) {
+            const restoredStock = Math.max(0, (p.stock || 0) - oldItem.qty);
+            await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { stock: restoredStock });
+            p.stock = restoredStock;
+          }
+        }
+      }
       await deleteDoc(doc(db, 'users', currentUser.uid, 'stockIn', window._editingStockInId));
       stockInOrders = stockInOrders.filter(x => x.id !== window._editingStockInId);
       window._editingStockInId = null;
@@ -1358,6 +1370,18 @@ window.confirmStockOut = async () => {
 
     // If editing, delete old order first
     if (window._editingStockOutId) {
+      // Restore old stock first
+      const oldOrder = stockOutOrders.find(x => x.id === window._editingStockOutId);
+      if (oldOrder) {
+        for (const oldItem of oldOrder.items || []) {
+          const p = products.find(x => x.id === oldItem.productId);
+          if (p) {
+            const restoredStock = (p.stock || 0) + oldItem.qty;
+            await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { stock: restoredStock });
+            p.stock = restoredStock;
+          }
+        }
+      }
       await deleteDoc(doc(db, 'users', currentUser.uid, 'stockOut', window._editingStockOutId));
       stockOutOrders = stockOutOrders.filter(x => x.id !== window._editingStockOutId);
       window._editingStockOutId = null;
@@ -2979,6 +3003,9 @@ window.restoreData = () => {
       expenseCategories = backup.expenseCategories || expenseCategories;
       suppliers = backup.suppliers || [];
       updateHomePage();
+      renderProductList();
+      renderCustomerList();
+      renderExpenseList();
       showToast('還原成功！');
     } catch (e) {
       showToast('還原失敗：' + e.message);
