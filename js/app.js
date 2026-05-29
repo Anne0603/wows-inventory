@@ -137,23 +137,11 @@ window.handleAvatarUpload = (event) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     compressImage(e.target.result, 300, 0.85, async (compressed) => {
-      try {
-        const imgRef = ref(storage, `users/${currentUser.uid}/avatar.jpg`);
-        await uploadString(imgRef, compressed, 'data_url');
-        const url = await getDownloadURL(imgRef);
-        userSettings.shopAvatarUrl = url;
-        await saveSettings();
-        updateShopAvatar();
-        forceCloseModal();
-        showToast('頭貼已更新！');
-      } catch(e) {
-        // Save locally if storage fails
-        userSettings.shopAvatarUrl = compressed;
-        await saveSettings();
-        updateShopAvatar();
-        forceCloseModal();
-        showToast('頭貼已更新！');
-      }
+      userSettings.shopAvatarUrl = compressed;
+      await saveSettings();
+      updateShopAvatar();
+      forceCloseModal();
+      showToast('頭貼已更新！');
     });
   };
   reader.readAsDataURL(file);
@@ -616,29 +604,18 @@ window.saveProduct = async () => {
   }
 
   showToast('儲存中...');
-  console.log('Saving product, user:', currentUser?.uid);
 
-  // Handle image - upload both compressed and original
+  // Save images as base64 directly in Firestore (avoids CORS issues)
   const imageData = document.getElementById('product-img-upload').dataset.imageData;
   const originalData = document.getElementById('product-img-upload').dataset.originalData;
   if (imageData) {
-    try {
-      const timestamp = Date.now();
-      const imgRef = ref(storage, `users/${currentUser.uid}/products/${timestamp}.jpg`);
-      await uploadString(imgRef, imageData, 'data_url');
-      productData.imageUrl = await getDownloadURL(imgRef);
-      if (originalData) {
-        const origRef = ref(storage, `users/${currentUser.uid}/products_original/${timestamp}_original.jpg`);
-        await uploadString(origRef, originalData, 'data_url');
-        productData.imageOriginalUrl = await getDownloadURL(origRef);
-      }
-    } catch (e) {
-      console.warn('Image upload error (continuing):', e.code, e.message);
+    productData.imageUrl = imageData; // compressed base64
+    if (originalData) {
+      productData.imageOriginalUrl = originalData; // original base64
     }
   }
 
   try {
-    console.log('Writing to Firestore...');
     if (editingProductId) {
       await updateDoc(doc(db, 'users', currentUser.uid, 'products', editingProductId), productData);
       const idx = products.findIndex(p => p.id === editingProductId);
@@ -655,11 +632,11 @@ window.saveProduct = async () => {
     }
     navigate('products');
   } catch (e) {
-    console.error('Save product error:', e.code, e.message, e);
+    console.error('Save product error:', e.code, e.message);
     if (e.code === 'permission-denied') {
       showToast('❌ 權限不足，請確認 Firestore 規則');
     } else if (e.code === 'unavailable') {
-      showToast('❌ 網路連線問題，請重試');
+      showToast('❌ 網路問題，請重試');
     } else {
       showToast('❌ 儲存失敗：' + (e.code || e.message));
     }
