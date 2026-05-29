@@ -273,7 +273,7 @@ window.navigate = (page) => {
   if (page === 'manage-expense-categories') renderExpenseCategoriesManagement();
   if (page === 'manage-suppliers') renderSuppliersManagement();
   if (page === 'add-product' && !editingProductId) initAddProduct();
-  if (page === 'add-customer') initAddCustomer();
+  if (page === 'add-customer' && !editingCustomerId) initAddCustomer();
   if (page === 'add-expense') initAddExpense();
   if (page === 'stock-in') initStockIn();
   if (page === 'stock-out') initStockOut();
@@ -648,6 +648,7 @@ window.saveProduct = async () => {
       }
       showToast('商品已新增！');
     }
+    editingProductId = null;
     navigate('products');
   } catch (e) {
     console.error('Save product error:', e.code, e.message);
@@ -987,15 +988,21 @@ window.showSupplierPickerForStockIn = () => {
 
 window.confirmStockIn = async () => {
   if (stockInItems.length === 0) { showToast('請新增商品'); return; }
+  showToast('入庫處理中...');
   const date = document.getElementById('stock-in-date-display').dataset.value;
   const notes = document.getElementById('stock-in-notes').value;
   const shipping = parseFloat(document.getElementById('stock-in-shipping').value) || 0;
   const totalCost = stockInItems.reduce((sum, i) => sum + (i.qty * i.cost), 0);
 
-  // Calculate shipping per item based on cost ratio
+  // Calculate shipping per item - by cost ratio if possible, else by qty
+  const totalQtyAll = stockInItems.reduce((s, i) => s + i.qty, 0);
   const orderItems = stockInItems.map(item => {
-    const itemTotalCost = item.qty * item.cost;
-    const shippingForItem = totalCost > 0 ? (itemTotalCost / totalCost) * shipping : 0;
+    let shippingForItem;
+    if (totalCost > 0) {
+      shippingForItem = (item.qty * item.cost / totalCost) * shipping;
+    } else {
+      shippingForItem = totalQtyAll > 0 ? (item.qty / totalQtyAll) * shipping : 0;
+    }
     const shippingPerItem = item.qty > 0 ? shippingForItem / item.qty : 0;
     const actualCost = item.cost + shippingPerItem;
     return { ...item, shippingPerItem: parseFloat(shippingPerItem.toFixed(2)), actualCost: parseFloat(actualCost.toFixed(2)) };
@@ -1035,7 +1042,9 @@ window.confirmStockIn = async () => {
     showToast(`入庫成功！單號：${orderNum}`);
     navigate('home');
   } catch (e) {
-    showToast('入庫失敗：' + e.message);
+    console.error('StockIn error:', e);
+    if (e.code === 'permission-denied') showToast('❌ 權限不足，請確認 Firebase 規則');
+    else showToast('❌ 入庫失敗：' + (e.code || e.message));
   }
 };
 
@@ -1151,6 +1160,7 @@ window.showCustomerPickerForStockOut = () => {
 window.confirmStockOut = async () => {
   if (stockOutItems.length === 0) { showToast('請新增商品'); return; }
   if (!stockOutCustomerId) { showToast('請選擇客戶'); return; }
+  showToast('出庫處理中...');
 
   const date = document.getElementById('stock-out-date-display').dataset.value;
   const notes = document.getElementById('stock-out-notes').value;
@@ -1194,7 +1204,9 @@ window.confirmStockOut = async () => {
     showToast(`出庫成功！單號：${orderNum}`);
     navigate('home');
   } catch (e) {
-    showToast('出庫失敗：' + e.message);
+    console.error('StockOut error:', e);
+    if (e.code === 'permission-denied') showToast('❌ 權限不足，請確認 Firebase 規則');
+    else showToast('❌ 出庫失敗：' + (e.code || e.message));
   }
 };
 
@@ -1287,6 +1299,7 @@ window.saveCustomer = async () => {
       customers.push({ id: docRef.id, ...data });
       showToast('客戶已新增！');
     }
+    editingCustomerId = null;
     navigate('customers');
   } catch (e) {
     showToast('儲存失敗：' + e.message);
@@ -2612,22 +2625,6 @@ window.submitManualBarcode = () => {
 };
 
 // ==================== NOTIFICATIONS ====================
-window.showNotifications = () => {
-  const notifications = getNotifications();
-  showModal(`<div class="modal-handle"></div>
-    <div class="modal-title">通知</div>
-    ${notifications.length === 0
-      ? '<div class="empty-state" style="padding:30px 0"><i class="ti ti-bell-off" style="font-size:48px;margin-bottom:12px;display:block;color:var(--text4)"></i><p style="color:var(--text4)">目前沒有通知</p></div>'
-      : notifications.map(n => `
-        <div class="alert-item" style="background:var(--bg3);border-color:var(--border);margin-bottom:8px;cursor:pointer" onclick="forceCloseModal();${n.action}">
-          <i class="${n.icon}" style="color:${n.color};font-size:20px"></i>
-          <span style="color:var(--text2);flex:1">${n.text}</span>
-          <i class="ti ti-chevron-right" style="color:var(--text4)"></i>
-        </div>`).join('')}
-    <button class="submit-btn" style="margin-top:12px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border)" onclick="dismissNotifications()">已閱讀，清除紅點 24小時</button>
-    <button class="submit-btn" style="margin-top:8px" onclick="forceCloseModal()">關閉</button>`);
-};
-
 function getNotifications() {
   const list = [];
   const lowStock = products.filter(p => p.stock !== undefined && p.stock >= 0 && p.stock <= userSettings.lowStockThreshold);
@@ -2645,6 +2642,24 @@ function getNotifications() {
   }
   return list;
 }
+
+window.showNotifications = () => {
+  const notifications = getNotifications();
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">通知</div>
+    ${notifications.length === 0
+      ? '<div class="empty-state" style="padding:30px 0"><i class="ti ti-bell-off" style="font-size:48px;margin-bottom:12px;display:block;color:var(--text4)"></i><p style="color:var(--text4)">目前沒有通知</p></div>'
+      : notifications.map(n => `
+        <div class="alert-item" style="background:var(--bg3);border-color:var(--border);margin-bottom:8px;cursor:pointer" onclick="forceCloseModal();${n.action}">
+          <i class="${n.icon}" style="color:${n.color};font-size:20px"></i>
+          <span style="color:var(--text2);flex:1">${n.text}</span>
+          <i class="ti ti-chevron-right" style="color:var(--text4)"></i>
+        </div>`).join('')}
+    <button class="submit-btn" style="margin-top:12px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border)" onclick="dismissNotifications()">已閱讀，清除紅點 24小時</button>
+    <button class="submit-btn" style="margin-top:8px" onclick="forceCloseModal()">關閉</button>`);
+};
+
+
 
 window.dismissNotifications = () => {
   userSettings.notificationDismissed = Date.now();
