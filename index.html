@@ -296,7 +296,7 @@
         <!-- Product Detail Page -->
         <div class="page" id="page-product-detail">
           <div class="subpage-topbar">
-            <button class="icon-btn" onclick="navigate('products')"><i class="ti ti-arrow-left"></i></button>
+            <button class="icon-btn" onclick="goBackFromProductDetail()"><i class="ti ti-arrow-left"></i></button>
             <span class="subpage-title">商品詳細</span>
             <button class="icon-btn" id="product-detail-menu-btn" onclick="showProductDetailMenu()"><i class="ti ti-dots-vertical"></i></button>
           </div>
@@ -895,41 +895,6 @@
 
             </div>
 
-            <div class="section-label">資料管理</div>
-            <div class="form-card">
-              <div class="form-row" onclick="backupData()">
-                <div class="setting-icon si-green"><i class="ti ti-cloud-upload"></i></div>
-                <div style="flex:1;">
-                  <div style="color:#c8d0e8;font-size:16px;">備份至雲端</div>
-                  <div style="color:#5a7090;font-size:13px;margin-top:2px;" id="last-backup-display">尚未備份</div>
-                </div>
-                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
-              </div>
-              <div class="form-row" onclick="restoreData()">
-                <div class="setting-icon si-green"><i class="ti ti-cloud-download"></i></div>
-                <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">從雲端還原</div></div>
-                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
-              </div>
-              <div class="form-row" onclick="importData()">
-                <div class="setting-icon si-blue"><i class="ti ti-file-import"></i></div>
-                <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">資料匯入</div></div>
-                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
-              </div>
-              <div class="form-row" onclick="exportData()">
-                <div class="setting-icon si-blue"><i class="ti ti-file-export"></i></div>
-                <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">資料匯出</div></div>
-                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
-              </div>
-              <div class="form-row" style="border-bottom:none" onclick="clearAllData()">
-                <div class="setting-icon si-red"><i class="ti ti-trash"></i></div>
-                <div style="flex:1;">
-                  <div style="color:#e05545;font-size:16px;">清除所有資料</div>
-                  <div style="color:#5a7090;font-size:13px;margin-top:2px;">需輸入「確認」才可執行</div>
-                </div>
-                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
-              </div>
-            </div>
-
             <div class="section-label">其他設定</div>
             <div class="form-card">
               <div class="form-row" onclick="editPrefixSetting('barcode')">
@@ -962,6 +927,41 @@
                   <div style="color:#c8d0e8;font-size:16px;">版本</div>
                   <div style="color:#5a7090;font-size:13px;margin-top:2px;">v1.0.0</div>
                 </div>
+              </div>
+            </div>
+
+            <div class="section-label">資料管理</div>
+            <div class="form-card">
+              <div class="form-row" onclick="backupData()">
+                <div class="setting-icon si-green"><i class="ti ti-cloud-upload"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:16px;">備份至雲端</div>
+                  <div style="color:#5a7090;font-size:13px;margin-top:2px;" id="last-backup-display">尚未備份</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="restoreData()">
+                <div class="setting-icon si-green"><i class="ti ti-cloud-download"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">從雲端還原</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="importData()">
+                <div class="setting-icon si-blue"><i class="ti ti-file-import"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">資料匯入</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="exportData()">
+                <div class="setting-icon si-blue"><i class="ti ti-file-export"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">資料匯出</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" style="border-bottom:none" onclick="clearAllData()">
+                <div class="setting-icon si-red"><i class="ti ti-trash"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#e05545;font-size:16px;">清除所有資料</div>
+                  <div style="color:#5a7090;font-size:13px;margin-top:2px;">需輸入「確認」才可執行</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
               </div>
             </div>
 

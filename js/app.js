@@ -693,6 +693,9 @@ function generateBarcode() {
 // ==================== PRODUCT DETAIL ====================
 window.showProductDetail = (productId) => {
   currentProductDetailId = productId;
+  // Track if we came from home alert
+  if (!window._fromHomeAlert) window._productDetailFromPage = currentPage;
+  window._fromHomeAlert = false;
   const p = products.find(x => x.id === productId);
   if (!p) return;
 
@@ -816,6 +819,16 @@ window.editProduct = (productId) => {
   document.getElementById('product-img-upload').dataset.imageData = '';
 
   navigate('add-product');
+};
+
+window.goBackFromProductDetail = () => {
+  const from = window._productDetailFromPage || 'products';
+  window._productDetailFromPage = null;
+  if (from === 'home') {
+    navigate('home');
+  } else {
+    navigate('products');
+  }
 };
 
 window.showProductDetailMenu = () => {
@@ -3145,7 +3158,7 @@ function renderPickerList(prods, callback) {
   if (prods.length === 0) return '<div class="empty-state" style="padding:20px 0"><i class="ti ti-box" style="font-size:40px;display:block;margin-bottom:8px;color:var(--text4)"></i><p style="color:var(--text4)">沒有符合的商品</p></div>';
   return prods.map(p => `
     <div class="picker-item" onclick="selectPickerProduct('${p.id}')">
-      <div class="product-thumb" style="width:40px;height:40px;flex-shrink:0">
+      <div class="product-thumb" style="width:50px;height:50px;flex-shrink:0">
         ${p.imageUrl ? `<img src="${p.imageUrl}">` : `<i class="ti ti-photo"></i>`}
       </div>
       <div style="flex:1">
