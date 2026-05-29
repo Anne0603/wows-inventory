@@ -67,15 +67,15 @@ body.light {
   border: 0.5px solid var(--border);
 }
 .login-logo-icon i { font-size: 40px; color: var(--blue); }
-.login-logo h1 { font-size: 24px; font-weight: 600; color: var(--text); }
-.login-logo p { font-size: 14px; color: var(--text4); margin-top: 6px; }
+.login-logo h1 { font-size: 28px; font-weight: 600; color: var(--text); }
+.login-logo p { font-size: 16px; color: var(--text4); margin-top: 6px; }
 .btn-google {
   display: flex; align-items: center; gap: 12px;
   background: var(--bg2);
   border: 0.5px solid var(--border);
   border-radius: 12px;
-  padding: 14px 24px;
-  font-size: 15px; color: var(--text2);
+  padding: 16px 24px;
+  font-size: 16px; color: var(--text2);
   cursor: pointer; width: 100%;
   justify-content: center;
 }
@@ -101,7 +101,7 @@ body.light {
 }
 .shop-avatar i { color: var(--text4); font-size: 16px; }
 .shop-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.shop-name { font-size: 15px; font-weight: 500; color: var(--text); }
+.shop-name { font-size: 16px; font-weight: 500; color: var(--text); }
 .topbar-right { display: flex; gap: 8px; align-items: center; }
 
 /* Subpage Topbar */
@@ -115,7 +115,7 @@ body.light {
   padding: 0 16px;
   z-index: 100;
 }
-.subpage-title { font-size: 16px; font-weight: 500; color: var(--text); }
+.subpage-title { font-size: 18px; font-weight: 500; color: var(--text); }
 
 /* Icon & Text Buttons */
 .icon-btn {
@@ -153,8 +153,8 @@ body.light {
   border: 0.5px solid var(--border);
   padding: 10px 12px;
 }
-.stat-label { color: var(--text4); font-size: 11px; margin-bottom: 4px; }
-.stat-value { font-size: 18px; font-weight: 500; }
+.stat-label { color: var(--text4); font-size: 12px; margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 500; }
 .stat-value.blue { color: var(--blue); }
 .stat-value.green { color: var(--green); }
 .stat-value.amber { color: var(--amber); }
@@ -170,8 +170,8 @@ body.light {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 8px;
 }
-.monthly-label { color: var(--text4); font-size: 11px; }
-.monthly-value { color: var(--text); font-size: 13px; font-weight: 500; }
+.monthly-label { color: var(--text4); font-size: 13px; }
+.monthly-value { color: var(--text); font-size: 15px; font-weight: 500; }
 
 /* Alert Items */
 .alert-item {
@@ -186,7 +186,7 @@ body.light {
 .alert-item.info i { color: var(--blue); }
 
 /* Section Label */
-.section-label { color: var(--text3); font-size: 11px; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 10px; margin-top: 4px; }
+.section-label { color: var(--text3); font-size: 13px; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 10px; margin-top: 4px; }
 
 /* Menu Grid */
 .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -200,8 +200,8 @@ body.light {
 }
 .menu-btn:active { opacity: 0.8; }
 .menu-ill { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.menu-label { color: var(--text2); font-size: 12px; font-weight: 500; text-align: center; }
-.menu-sub { color: var(--text4); font-size: 10px; text-align: center; }
+.menu-label { color: var(--text2); font-size: 14px; font-weight: 500; text-align: center; }
+.menu-sub { color: var(--text4); font-size: 12px; text-align: center; }
 
 /* Search Bar */
 .search-bar {
@@ -229,8 +229,8 @@ body.light {
 .cat-tab {
   background: var(--bg2); border-radius: 20px;
   border: 0.5px solid var(--border);
-  padding: 6px 12px; color: var(--text3);
-  font-size: 12px; white-space: nowrap; flex-shrink: 0;
+  padding: 8px 14px; color: var(--text3);
+  font-size: 13px; white-space: nowrap; flex-shrink: 0;
   cursor: pointer;
 }
 .cat-tab.active { background: var(--blue); border-color: var(--blue); color: white; }
@@ -261,13 +261,13 @@ body.light {
 .product-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .product-thumb i { color: var(--text5); font-size: 20px; }
 .product-info { flex: 1; min-width: 0; }
-.product-name { color: var(--text2); font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.product-model-text { color: var(--text4); font-size: 11px; margin-top: 2px; }
-.stock-badge { font-size: 12px; font-weight: 500; }
+.product-name { color: var(--text2); font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.product-model-text { color: var(--text4); font-size: 12px; margin-top: 2px; }
+.stock-badge { font-size: 14px; font-weight: 500; }
 .stock-badge.ok { color: var(--green); }
 .stock-badge.low { color: var(--amber); }
 .stock-badge.zero { color: var(--red); }
-.stock-badge-label { color: var(--text4); font-size: 10px; }
+.stock-badge-label { color: var(--text4); font-size: 11px; }
 
 /* Form Card */
 .form-card {
@@ -282,11 +282,11 @@ body.light {
   gap: 8px;
 }
 .form-row:last-child { border-bottom: none; }
-.form-label { color: var(--text4); font-size: 12px; width: 90px; flex-shrink: 0; }
+.form-label { color: var(--text4); font-size: 14px; width: 90px; flex-shrink: 0; }
 .required { color: var(--red); font-size: 12px; }
 .form-input {
   flex: 1; background: none; border: none; outline: none;
-  color: var(--text2); font-size: 13px; min-width: 0;
+  color: var(--text2); font-size: 15px; min-width: 0;
   font-family: inherit;
 }
 .form-input::placeholder { color: var(--text5); }
@@ -307,9 +307,9 @@ body.light {
 /* Buttons */
 .submit-btn {
   width: 100%; background: var(--blue);
-  border-radius: 12px; padding: 14px;
+  border-radius: 12px; padding: 16px;
   text-align: center; color: white;
-  font-size: 15px; font-weight: 500;
+  font-size: 16px; font-weight: 500;
   border: none; cursor: pointer;
   margin-top: 4px;
 }
@@ -333,9 +333,9 @@ body.light {
 .add-product-row { display: flex; gap: 8px; margin-bottom: 14px; }
 .add-product-btn {
   flex: 1; background: var(--bg2); border-radius: 10px;
-  border: 0.5px solid var(--border); padding: 11px;
+  border: 0.5px solid var(--border); padding: 13px;
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  cursor: pointer; font-size: 13px;
+  cursor: pointer; font-size: 15px;
 }
 .add-product-btn.search { color: var(--green); }
 .add-product-btn.search i { color: var(--green); font-size: 16px; }
@@ -356,12 +356,12 @@ body.light {
 }
 .stock-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .stock-item-thumb i { color: var(--text5); font-size: 18px; }
-.stock-item-name { color: var(--text2); font-size: 13px; font-weight: 500; }
-.stock-item-model { color: var(--text4); font-size: 11px; margin-top: 2px; }
+.stock-item-name { color: var(--text2); font-size: 15px; font-weight: 500; }
+.stock-item-model { color: var(--text4); font-size: 13px; margin-top: 2px; }
 .delete-btn { color: var(--red); font-size: 18px; background: none; border: none; cursor: pointer; margin-left: auto; flex-shrink: 0; }
 .stock-item-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .input-group { background: var(--bg3); border-radius: 8px; padding: 8px 10px; }
-.input-group-label { color: var(--text4); font-size: 10px; margin-bottom: 3px; }
+.input-group-label { color: var(--text4); font-size: 12px; margin-bottom: 3px; }
 .input-group input {
   background: none; border: none; outline: none;
   color: var(--text2); font-size: 14px; font-weight: 500;
@@ -376,8 +376,8 @@ body.light {
   padding: 12px 14px; margin-bottom: 14px;
   border: 0.5px solid var(--border);
 }
-.total-label { color: var(--text3); font-size: 13px; }
-.total-value { color: var(--text); font-size: 18px; font-weight: 500; }
+.total-label { color: var(--text3); font-size: 15px; }
+.total-value { color: var(--text); font-size: 20px; font-weight: 500; }
 
 /* Customer List */
 .customer-item {
@@ -442,8 +442,8 @@ body.light {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 14px; cursor: pointer;
 }
-.filter-title { color: var(--text); font-size: 13px; font-weight: 500; }
-.filter-sub { color: var(--text4); font-size: 11px; margin-top: 2px; }
+.filter-title { color: var(--text); font-size: 15px; font-weight: 500; }
+.filter-sub { color: var(--text4); font-size: 13px; margin-top: 2px; }
 
 /* Profit Ranking */
 .rank-item { padding: 11px 14px; border-bottom: 0.5px solid var(--border); }
@@ -505,9 +505,9 @@ body.light {
 /* Picker List */
 .picker-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 0;
+  padding: 14px 0;
   border-bottom: 0.5px solid var(--border);
-  cursor: pointer; color: var(--text2); font-size: 14px;
+  cursor: pointer; color: var(--text2); font-size: 15px;
 }
 .picker-item:last-child { border-bottom: none; }
 .picker-item.selected { color: var(--blue); }
