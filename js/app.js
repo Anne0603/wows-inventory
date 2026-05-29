@@ -920,15 +920,30 @@ window.saveBarcodeImage = () => {
   const canvas = document.getElementById('barcode-canvas');
   if (!canvas) return;
   const dataUrl = canvas.toDataURL('image/png');
+  // Get product name from the modal
+  const nameEl = document.querySelector('#modal-body .barcode-display p');
+  const productName = nameEl ? nameEl.textContent : '';
   const w = window.open('', '_blank');
   if (w) {
     w.document.write(`
-      <html><head><title>條碼</title>
+      <html><head><title>${productName} 條碼</title>
       <meta name="viewport" content="width=device-width">
-      <style>body{margin:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
-      img{max-width:100%;border:1px solid #eee}
-      p{color:#333;font-size:14px;margin:12px;text-align:center;font-family:sans-serif}</style></head>
-      <body><img src="${dataUrl}"><p>長按圖片即可儲存到相簿</p></body></html>`);
+      <style>
+        body{margin:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:-apple-system,sans-serif}
+        .card{background:#fff;border-radius:12px;padding:24px;text-align:center;max-width:360px;width:90%}
+        img{max-width:100%;border:1px solid #eee;border-radius:8px}
+        .name{color:#111;font-size:18px;font-weight:600;margin:14px 0 4px}
+        .hint{color:#888;font-size:13px;margin-bottom:16px}
+        .close-btn{background:#333;color:#fff;border:none;border-radius:8px;padding:12px 32px;font-size:16px;cursor:pointer;margin-top:8px}
+      </style></head>
+      <body>
+        <div class="card">
+          <img src="${dataUrl}">
+          <div class="name">${productName}</div>
+          <div class="hint">長按圖片即可儲存到相簿</div>
+          <button class="close-btn" onclick="window.close()">關閉</button>
+        </div>
+      </body></html>`);
     w.document.close();
   } else {
     showToast('請長按條碼圖片儲存');
