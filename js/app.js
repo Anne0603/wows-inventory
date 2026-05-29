@@ -310,7 +310,7 @@ function updateHomePage() {
   const monthProfit = monthOut - monthInCost - monthExpenses;
 
   // Total inventory value
-  const totalInventoryValue = products.reduce((sum, p) => sum + ((p.cost || 0) * (p.stock || 0)), 0);
+  const totalInventoryValue = products.reduce((sum, p) => sum + ((p.avgCost || p.cost || 0) * (p.stock || 0)), 0);
 
   // Month out count
   const monthOutCount = stockOutOrders.filter(o => o.date && o.date.startsWith(thisMonth)).length;
@@ -320,6 +320,11 @@ function updateHomePage() {
   document.getElementById('month-profit').textContent = `$${monthProfit.toLocaleString()}`;
   document.getElementById('total-inventory-value').textContent = `$${totalInventoryValue.toLocaleString()}`;
   document.getElementById('month-out-count').textContent = `${monthOutCount} 筆`;
+  const monthlyBadge = document.querySelector('.monthly-badge');
+  if (monthlyBadge) {
+    monthlyBadge.style.cursor = 'pointer';
+    monthlyBadge.onclick = () => { navigate('reports'); navigate('report-stock-out'); };
+  }
   document.getElementById('shop-name-display').textContent = userSettings.companyName || '我的店';
 
   // Low stock alert
@@ -1208,7 +1213,15 @@ window.confirmStockOut = async () => {
     });
     if (customer) customer.totalAmount = (customer.totalAmount || 0) + totalAmount;
 
-    showToast(`出庫成功！單號：${orderNum}`);
+    // If editing, delete old order first
+    if (window._editingStockOutId) {
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'stockOut', window._editingStockOutId));
+      stockOutOrders = stockOutOrders.filter(x => x.id !== window._editingStockOutId);
+      window._editingStockOutId = null;
+      showToast('出庫單已更新！');
+    } else {
+      showToast(`出庫成功！單號：${orderNum}`);
+    }
     updateHomePage();
     navigate('home');
   } catch (e) {
@@ -1504,15 +1517,63 @@ window.showExpenseDetail = (expenseId) => {
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title">支出詳細</div>
     <div class="form-card" style="margin:0 0 16px">
-      <div class="form-row"><span class="form-label">類別</span><span class="form-input">${e.category}</span></div>
-      <div class="form-row"><span class="form-label">金額</span><span class="form-input" style="color:var(--red)">$${(e.amount||0).toLocaleString()}</span></div>
-      <div class="form-row"><span class="form-label">日期</span><span class="form-input">${e.date}</span></div>
-      <div class="form-row" style="border-bottom:none"><span class="form-label">備註</span><span class="form-input">${e.notes || '無'}</span></div>
+      <div class="form-row" onclick="showExpenseCategoryPickerInModal('${e.id}')">
+        <span class="form-label">類別</span>
+        <span class="form-input" id="edit-expense-cat-${e.id}">${e.category}</span>
+        <i class="ti ti-chevron-right" style="color:var(--text5)"></i>
+      </div>
+      <div class="form-row">
+        <span class="form-label">金額</span>
+        <input class="form-input" type="number" id="edit-expense-amt-${e.id}" value="${e.amount||0}" style="color:var(--red)">
+      </div>
+      <div class="form-row" onclick="showDatePickerInModal('${e.id}')">
+        <span class="form-label">日期</span>
+        <span class="form-input" id="edit-expense-date-${e.id}" data-value="${e.date}">${e.date}</span>
+        <i class="ti ti-calendar" style="color:var(--text5)"></i>
+      </div>
+      <div class="form-row" style="border-bottom:none">
+        <span class="form-label">備註</span>
+        <input class="form-input" type="text" id="edit-expense-notes-${e.id}" value="${e.notes||''}">
+      </div>
     </div>
-    <div style="display:flex;gap:8px">
-      <button class="submit-btn" style="background:var(--bg3);color:var(--red)" onclick="deleteExpense('${e.id}')">🗑️ 刪除</button>
-      <button class="submit-btn" onclick="forceCloseModal()">關閉</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="submit-btn red" onclick="deleteExpense('${e.id}')">🗑️ 刪除</button>
+      <button class="submit-btn" onclick="saveExpenseEdit('${e.id}')">儲存修改</button>
     </div>`);
+};
+
+window.saveExpenseEdit = async (expenseId) => {
+  const cat = document.getElementById(`edit-expense-cat-${expenseId}`)?.textContent;
+  const amt = parseFloat(document.getElementById(`edit-expense-amt-${expenseId}`)?.value) || 0;
+  const date = document.getElementById(`edit-expense-date-${expenseId}`)?.dataset.value;
+  const notes = document.getElementById(`edit-expense-notes-${expenseId}`)?.value || '';
+  if (!cat || amt <= 0) { showToast('請填寫完整資料'); return; }
+  try {
+    await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', expenseId), { category: cat, amount: amt, date, notes });
+    const idx = expenses.findIndex(e => e.id === expenseId);
+    if (idx > -1) expenses[idx] = { ...expenses[idx], category: cat, amount: amt, date, notes };
+    forceCloseModal();
+    renderExpenseList();
+    showToast('支出已更新！');
+  } catch(err) { showToast('更新失敗：' + err.message); }
+};
+
+window.showExpenseCategoryPickerInModal = (expenseId) => {
+  const html = expenseCategories.map(c =>
+    `<div class="picker-item" onclick="document.getElementById('edit-expense-cat-${expenseId}').textContent='${c}';history.back()">${c}</div>`
+  ).join('');
+  document.getElementById(`edit-expense-cat-${expenseId}`).textContent =
+    prompt('選擇類別：' + expenseCategories.join(', ')) || document.getElementById(`edit-expense-cat-${expenseId}`).textContent;
+};
+
+window.showDatePickerInModal = (expenseId) => {
+  const current = document.getElementById(`edit-expense-date-${expenseId}`)?.dataset.value || formatDate(new Date());
+  const d = new Date(current);
+  const newDate = prompt('輸入日期 (YYYY-MM-DD)：', formatDate(d));
+  if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+    document.getElementById(`edit-expense-date-${expenseId}`).textContent = newDate;
+    document.getElementById(`edit-expense-date-${expenseId}`).dataset.value = newDate;
+  }
 };
 
 window.deleteExpense = (expenseId) => {
@@ -1732,10 +1793,30 @@ window.showStockOutDetail = (orderId) => {
         <div class="form-row"><span class="form-label">出庫數量</span><span class="form-input">${(o.items||[]).reduce((s,i)=>s+i.qty,0)} 件</span></div>
         <div class="form-row" style="border-bottom:none"><span class="form-label">出庫總價</span><span class="form-input" style="color:var(--green)">$${(o.totalAmount||0).toLocaleString()}</span></div>
       </div>
-      <button class="submit-btn red" onclick="deleteStockOutOrder('${o.id}')">🗑️ 刪除此出庫單</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="editStockOutOrder('${o.id}')">✏️ 修改</button>
+        <button class="submit-btn red" onclick="deleteStockOutOrder('${o.id}')">🗑️ 刪除</button>
+      </div>
       <div style="height:20px"></div>
     </div>`;
   navigate('stock-out-detail');
+};
+
+window.editStockOutOrder = (orderId) => {
+  const o = stockOutOrders.find(x => x.id === orderId);
+  if (!o) return;
+  // Load items into stock-out form
+  stockOutItems = (o.items || []).map(i => ({...i}));
+  stockOutCustomerId = o.customerId;
+  document.getElementById('stock-out-customer-display').textContent = o.customerName || '請選擇客戶';
+  document.getElementById('stock-out-customer-display').dataset.value = o.customerId || '';
+  document.getElementById('stock-out-notes').value = o.notes || '';
+  setDateDisplay('stock-out-date', new Date(o.date));
+  // Mark as editing
+  window._editingStockOutId = orderId;
+  renderStockOutItems();
+  navigate('stock-out');
+  showToast('修改模式：請調整後重新送出');
 };
 
 window.deleteStockOutOrder = (orderId) => {
@@ -1793,6 +1874,7 @@ window.showStockInDetail = (orderId) => {
         <div class="form-row"><span class="form-label">附加成本</span><span class="form-input">$${(o.shipping||0).toLocaleString()}</span></div>
         <div class="form-row" style="border-bottom:none"><span class="form-label">入庫總金額</span><span class="form-input" style="color:var(--blue)">$${(o.totalCost||0).toLocaleString()}</span></div>
       </div>
+      <button class="submit-btn red" onclick="deleteStockInOrder('${o.id}')">🗑️ 刪除此入庫單</button>
       <div style="height:20px"></div>
     </div>`;
   navigate('stock-in-detail');
@@ -2317,6 +2399,10 @@ window.deleteSupplierItem = (idx) => {
 // ==================== PICKERS ====================
 function showProductPicker(callback) {
   const sorted = sortProducts(products);
+  const allCats = ['全部', ...productCategories];
+  window._pickerCallback = callback;
+  window._pickerProducts = sorted;
+  window._pickerCategory = '全部';
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title">選擇商品</div>
     <div class="search-bar" style="margin-bottom:8px">
@@ -2324,18 +2410,38 @@ function showProductPicker(callback) {
       <input type="text" placeholder="搜尋商品" id="picker-search"
         oninput="filterPickerProducts()" style="background:none;border:none;outline:none;color:var(--text2);font-size:17px;flex:1;width:100%">
     </div>
+    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;scrollbar-width:none">
+      ${allCats.map(c => `<div onclick="pickerSelectCat('${c}')" id="picker-cat-${c.replace(/\s/g,'_')}"
+        style="background:${c==='全部'?'var(--blue)':'var(--bg2)'};border:0.5px solid ${c==='全部'?'var(--blue)':'var(--border)'};
+        border-radius:20px;padding:6px 14px;color:${c==='全部'?'white':'var(--text3)'};
+        font-size:13px;white-space:nowrap;flex-shrink:0;cursor:pointer">${c}</div>`).join('')}
+    </div>
     <div id="picker-product-list">
       ${renderPickerList(sorted, callback)}
     </div>`);
-  window._pickerCallback = callback;
-  window._pickerProducts = sorted;
 }
+
+window.pickerSelectCat = (cat) => {
+  window._pickerCategory = cat;
+  // Update tab styles
+  ['全部', ...productCategories].forEach(c => {
+    const el = document.getElementById('picker-cat-' + c.replace(/\s/g,'_'));
+    if (!el) return;
+    el.style.background = c === cat ? 'var(--blue)' : 'var(--bg2)';
+    el.style.borderColor = c === cat ? 'var(--blue)' : 'var(--border)';
+    el.style.color = c === cat ? 'white' : 'var(--text3)';
+  });
+  filterPickerProducts();
+};
 
 window.filterPickerProducts = () => {
   const search = document.getElementById('picker-search')?.value?.toLowerCase() || '';
-  const filtered = (window._pickerProducts || products).filter(p =>
-    p.name?.toLowerCase().includes(search) || p.model?.toLowerCase().includes(search)
-  );
+  const cat = window._pickerCategory || '全部';
+  const filtered = (window._pickerProducts || products).filter(p => {
+    const matchSearch = !search || p.name?.toLowerCase().includes(search) || p.model?.toLowerCase().includes(search);
+    const matchCat = cat === '全部' || p.category === cat;
+    return matchSearch && matchCat;
+  });
   document.getElementById('picker-product-list').innerHTML = renderPickerList(filtered, window._pickerCallback);
 };
 
@@ -2730,6 +2836,25 @@ function showToast(message) {
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 2500);
 }
+
+window.deleteStockInOrder = (orderId) => {
+  showConfirm('確定要刪除此入庫單嗎？庫存將會扣回。', async () => {
+    const o = stockInOrders.find(x => x.id === orderId);
+    if (!o) return;
+    for (const item of o.items || []) {
+      const p = products.find(x => x.id === item.productId);
+      if (p) {
+        const newStock = Math.max(0, (p.stock || 0) - item.qty);
+        await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { stock: newStock });
+        p.stock = newStock;
+      }
+    }
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'stockIn', orderId));
+    stockInOrders = stockInOrders.filter(x => x.id !== orderId);
+    navigate('report-stock-in');
+    showToast('入庫單已刪除');
+  });
+};
 
 // ==================== UTILS ====================
 function formatDate(date) {
