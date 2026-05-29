@@ -18,7 +18,11 @@ let userSettings = {
   sortBy: 'name-asc',
   lowStockThreshold: 5,
   staleDays: 30,
-  lastBackup: null
+  lastBackup: null,
+  currency: '$',
+  barcodePrefix: 'P',
+  stockInPrefix: 'I',
+  stockOutPrefix: 'O'
 };
 let products = [];
 let customers = [];
@@ -682,7 +686,8 @@ window.saveProduct = async () => {
 };
 
 function generateBarcode() {
-  return 'P' + Date.now().toString().slice(-10);
+  const prefix = userSettings.barcodePrefix || 'P';
+  return prefix + Date.now().toString().slice(-10);
 }
 
 // ==================== PRODUCT DETAIL ====================
@@ -1319,9 +1324,12 @@ window.confirmStockOut = async () => {
   }
 };
 
-function generateOrderNumber(prefix, date) {
+function generateOrderNumber(type, date) {
+  const prefix = type === 'O'
+    ? (userSettings.stockOutPrefix || 'O')
+    : (userSettings.stockInPrefix || 'I');
   const dateStr = (date || formatDate(new Date())).replace(/-/g, '');
-  const orders = prefix === 'O' ? stockOutOrders : stockInOrders;
+  const orders = type === 'O' ? stockOutOrders : stockInOrders;
   const todayOrders = orders.filter(o => o.date === (date || formatDate(new Date())));
   const seq = String(todayOrders.length + 1).padStart(4, '0');
   return `${prefix}${dateStr}${seq}`;
@@ -2559,6 +2567,14 @@ function renderSettings() {
   document.getElementById('setting-stale-days-display').textContent = `超過 ${userSettings.staleDays || 30} 天`;
   document.getElementById('setting-email-display').textContent = currentUser?.email || '';
   document.getElementById('last-backup-display').textContent = userSettings.lastBackup ? `上次備份：${userSettings.lastBackup}` : '尚未備份';
+  const bpEl = document.getElementById('setting-barcode-prefix-display');
+  if (bpEl) bpEl.textContent = userSettings.barcodePrefix || 'P';
+  const sipEl = document.getElementById('setting-stockin-prefix-display');
+  if (sipEl) sipEl.textContent = userSettings.stockInPrefix || 'I';
+  const sopEl = document.getElementById('setting-stockout-prefix-display');
+  if (sopEl) sopEl.textContent = userSettings.stockOutPrefix || 'O';
+  const curEl = document.getElementById('setting-currency-display');
+  if (curEl) curEl.textContent = userSettings.currency || '$';
   const toggle = document.getElementById('dark-mode-toggle');
   if (toggle) {
     toggle.classList.toggle('off', !userSettings.darkMode);
@@ -2628,6 +2644,84 @@ window.saveSetting = async (key) => {
 };
 
 window.showSortPicker = () => showProductFilter();
+
+window.editPrefixSetting = (type) => {
+  const labels = {
+    barcode: '商品條碼前綴',
+    stockIn: '入庫單號前綴',
+    stockOut: '出庫單號前綴'
+  };
+  const keys = {
+    barcode: 'barcodePrefix',
+    stockIn: 'stockInPrefix',
+    stockOut: 'stockOutPrefix'
+  };
+  const examples = {
+    barcode: '例：P → P1234567890',
+    stockIn: '例：I → I20260529-0001',
+    stockOut: '例：O → O20260529-0001'
+  };
+  const key = keys[type];
+  const current = userSettings[key] || (type === 'barcode' ? 'P' : type === 'stockIn' ? 'I' : 'O');
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">${labels[type]}</div>
+    <p style="color:var(--text4);font-size:13px;text-align:center;margin-bottom:16px">${examples[type]}</p>
+    <div class="form-card" style="margin-bottom:16px">
+      <div class="form-row" style="border-bottom:none">
+        <span class="form-label">前綴字母</span>
+        <input class="form-input" type="text" id="prefix-input" value="${current}"
+          maxlength="3" style="font-size:20px;font-weight:500;color:var(--blue);letter-spacing:2px"
+          oninput="this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'')">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">取消</button>
+      <button class="submit-btn" onclick="savePrefix('${key}','${type}')">儲存</button>
+    </div>`);
+  setTimeout(() => {
+    const el = document.getElementById('prefix-input');
+    if (el) { el.focus(); el.select(); }
+  }, 100);
+};
+
+window.savePrefix = async (key, type) => {
+  const val = document.getElementById('prefix-input')?.value?.trim().toUpperCase();
+  if (!val) { showToast('請輸入前綴字母'); return; }
+  userSettings[key] = val;
+  await saveSettings();
+  renderSettings();
+  forceCloseModal();
+  showToast(`前綴已更新為 ${val}`);
+};
+
+window.showCurrencyPicker = () => {
+  const currencies = [
+    { symbol: '$', label: '$ 美元/台幣' },
+    { symbol: 'NT$', label: 'NT$ 新台幣' },
+    { symbol: '¥', label: '¥ 日圓' },
+    { symbol: '€', label: '€ 歐元' },
+    { symbol: '₩', label: '₩ 韓元' },
+  ];
+  const current = userSettings.currency || '$';
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">選擇貨幣符號</div>
+    <div class="form-card" style="margin:0">
+      ${currencies.map(c => `
+        <div class="picker-item" onclick="saveCurrency('${c.symbol}')">
+          <span style="font-size:18px;font-weight:500;color:var(--blue);width:40px">${c.symbol}</span>
+          <span style="flex:1">${c.label}</span>
+          ${current === c.symbol ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+        </div>`).join('')}
+    </div>`);
+};
+
+window.saveCurrency = async (symbol) => {
+  userSettings.currency = symbol;
+  await saveSettings();
+  renderSettings();
+  forceCloseModal();
+  showToast(`貨幣符號已更新為 ${symbol}`);
+};
 
 window.backupData = async () => {
   showToast('備份中...');
@@ -2719,13 +2813,55 @@ function renderCategoriesManagement() {
   container.innerHTML = productCategories.length === 0
     ? `<div class="empty-state"><i class="ti ti-tag"></i><p>沒有商品類別</p></div>`
     : `<div class="form-card" style="margin:14px">
-      ${productCategories.map((cat, idx) => `
-        <div class="manage-item">
-          <span class="manage-item-name">${cat}</span>
-          <button class="manage-item-delete" onclick="deleteCategoryItem(${idx})"><i class="ti ti-trash"></i></button>
-        </div>`).join('')}
+      ${productCategories.map((cat, idx) => {
+        const count = products.filter(p => p.category === cat).length;
+        return `
+          <div class="manage-item">
+            <div style="flex:1">
+              <div style="color:var(--text2);font-size:15px">${cat}</div>
+              <div style="color:var(--text4);font-size:12px;margin-top:2px">${count} 件商品</div>
+            </div>
+            <button onclick="editCategoryItem(${idx})" style="background:none;border:none;color:var(--blue);font-size:16px;cursor:pointer;padding:4px 8px"><i class="ti ti-edit"></i></button>
+            <button class="manage-item-delete" onclick="deleteCategoryItem(${idx})"><i class="ti ti-trash"></i></button>
+          </div>`;
+      }).join('')}
     </div>`;
 }
+
+window.editCategoryItem = (idx) => {
+  const current = productCategories[idx];
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">修改類別名稱</div>
+    <div class="form-card" style="margin-bottom:16px">
+      <div class="form-row" style="border-bottom:none">
+        <input class="form-input" type="text" id="edit-cat-input" value="${current}" style="font-size:16px">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">取消</button>
+      <button class="submit-btn" onclick="saveEditCategory(${idx})">儲存</button>
+    </div>`);
+  setTimeout(() => { const el = document.getElementById('edit-cat-input'); if(el){el.focus();el.select();} }, 100);
+};
+
+window.saveEditCategory = async (idx) => {
+  const newName = document.getElementById('edit-cat-input')?.value?.trim();
+  if (!newName) { showToast('請輸入類別名稱'); return; }
+  if (productCategories.includes(newName) && newName !== productCategories[idx]) { showToast('類別名稱已存在'); return; }
+  const oldName = productCategories[idx];
+  productCategories[idx] = newName;
+  // Update all products with this category
+  for (const p of products) {
+    if (p.category === oldName) {
+      p.category = newName;
+      try { await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { category: newName }); } catch(e) {}
+    }
+  }
+  await saveCategories();
+  forceCloseModal();
+  renderCategoriesManagement();
+  showToast(`類別已更新為「${newName}」`);
+};
 
 window.addNewCategory = () => {
   showModal(`<div class="modal-handle"></div>
@@ -2751,7 +2887,19 @@ window.saveNewCategory = async () => {
 };
 
 window.deleteCategoryItem = (idx) => {
-  showConfirm(`確定要刪除「${productCategories[idx]}」類別嗎？`, async () => {
+  const cat = productCategories[idx];
+  const count = products.filter(p => p.category === cat).length;
+  if (count > 0) {
+    showModal(`<div class="modal-handle"></div>
+      <div class="modal-title" style="color:var(--amber)">無法刪除</div>
+      <p style="color:var(--text2);font-size:15px;text-align:center;margin-bottom:20px;line-height:1.6">
+        「${cat}」類別還有 <span style="color:var(--red);font-weight:500">${count} 件商品</span><br>
+        請先將商品移至其他類別或刪除商品後，才能刪除此類別
+      </p>
+      <button class="submit-btn" onclick="forceCloseModal()">我知道了</button>`);
+    return;
+  }
+  showConfirm(`確定要刪除「${cat}」類別嗎？`, async () => {
     productCategories.splice(idx, 1);
     await saveCategories();
     renderCategoriesManagement();
@@ -2763,13 +2911,53 @@ function renderExpenseCategoriesManagement() {
   const container = document.getElementById('expense-categories-content');
   if (!container) return;
   container.innerHTML = `<div class="form-card" style="margin:14px">
-    ${expenseCategories.map((cat, idx) => `
-      <div class="manage-item">
-        <span class="manage-item-name">${cat}</span>
-        <button class="manage-item-delete" onclick="deleteExpenseCategoryItem(${idx})"><i class="ti ti-trash"></i></button>
-      </div>`).join('')}
+    ${expenseCategories.map((cat, idx) => {
+      const count = expenses.filter(e => e.category === cat).length;
+      return `
+        <div class="manage-item">
+          <div style="flex:1">
+            <div style="color:var(--text2);font-size:15px">${cat}</div>
+            <div style="color:var(--text4);font-size:12px;margin-top:2px">${count} 筆支出</div>
+          </div>
+          <button onclick="editExpenseCategoryItem(${idx})" style="background:none;border:none;color:var(--blue);font-size:16px;cursor:pointer;padding:4px 8px"><i class="ti ti-edit"></i></button>
+          <button class="manage-item-delete" onclick="deleteExpenseCategoryItem(${idx})"><i class="ti ti-trash"></i></button>
+        </div>`;
+    }).join('')}
   </div>`;
 }
+
+window.editExpenseCategoryItem = (idx) => {
+  const current = expenseCategories[idx];
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">修改支出類別</div>
+    <div class="form-card" style="margin-bottom:16px">
+      <div class="form-row" style="border-bottom:none">
+        <input class="form-input" type="text" id="edit-exp-cat-input" value="${current}" style="font-size:16px">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">取消</button>
+      <button class="submit-btn" onclick="saveEditExpenseCategory(${idx})">儲存</button>
+    </div>`);
+  setTimeout(() => { const el = document.getElementById('edit-exp-cat-input'); if(el){el.focus();el.select();} }, 100);
+};
+
+window.saveEditExpenseCategory = async (idx) => {
+  const newName = document.getElementById('edit-exp-cat-input')?.value?.trim();
+  if (!newName) { showToast('請輸入類別名稱'); return; }
+  const oldName = expenseCategories[idx];
+  expenseCategories[idx] = newName;
+  for (const e of expenses) {
+    if (e.category === oldName) {
+      e.category = newName;
+      try { await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', e.id), { category: newName }); } catch(err) {}
+    }
+  }
+  await saveCategories();
+  forceCloseModal();
+  renderExpenseCategoriesManagement();
+  showToast(`類別已更新為「${newName}」`);
+};
 
 window.addNewExpenseCategory = () => {
   showModal(`<div class="modal-handle"></div>
@@ -2793,10 +2981,23 @@ window.saveNewExpenseCategory = async () => {
 };
 
 window.deleteExpenseCategoryItem = (idx) => {
-  showConfirm(`確定要刪除「${expenseCategories[idx]}」嗎？`, async () => {
+  const cat = expenseCategories[idx];
+  const count = expenses.filter(e => e.category === cat).length;
+  if (count > 0) {
+    showModal(`<div class="modal-handle"></div>
+      <div class="modal-title" style="color:var(--amber)">無法刪除</div>
+      <p style="color:var(--text2);font-size:15px;text-align:center;margin-bottom:20px;line-height:1.6">
+        「${cat}」還有 <span style="color:var(--red);font-weight:500">${count} 筆支出紀錄</span><br>
+        請先將支出移至其他類別或刪除紀錄後，才能刪除此類別
+      </p>
+      <button class="submit-btn" onclick="forceCloseModal()">我知道了</button>`);
+    return;
+  }
+  showConfirm(`確定要刪除「${cat}」嗎？`, async () => {
     expenseCategories.splice(idx, 1);
     await saveCategories();
     renderExpenseCategoriesManagement();
+    showToast('類別已刪除');
   });
 };
 
