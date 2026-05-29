@@ -220,7 +220,7 @@
           <div class="subpage-topbar">
             <button class="icon-btn" onclick="navigate('products')"><i class="ti ti-arrow-left"></i></button>
             <span class="subpage-title" id="add-product-title">新增商品</span>
-            <button class="text-btn" onclick="saveProduct()">儲存</button>
+            <div style="width:36px"></div>
           </div>
           <div class="page-content">
             <div class="img-upload" id="product-img-upload" onclick="triggerImageUpload()">
@@ -287,7 +287,7 @@
                 <input class="form-input" type="text" placeholder="請輸入備註" id="product-notes">
               </div>
             </div>
-            <button class="submit-btn" onclick="saveProduct()">✅ 送出</button>
+            <button class="submit-btn" onclick="saveProduct()">送出</button>
             <div style="height:20px"></div>
           </div>
         </div>
@@ -360,7 +360,7 @@
               <span class="total-label">入庫總金額</span>
               <span class="total-value" id="stock-in-total">$0</span>
             </div>
-            <button class="submit-btn green" onclick="confirmStockIn()">✅ 確認入庫</button>
+            <button class="submit-btn green" onclick="confirmStockIn()">確認入庫</button>
             <div style="height:20px"></div>
           </div>
         </div>
@@ -409,7 +409,7 @@
               <span class="total-label">出庫總金額</span>
               <span class="total-value" id="stock-out-total">$0</span>
             </div>
-            <button class="submit-btn red" id="confirm-stock-out-btn" onclick="confirmStockOut()">🚚 確認出庫</button>
+            <button class="submit-btn red" id="confirm-stock-out-btn" onclick="confirmStockOut()">確認出庫</button>
             <div style="height:20px"></div>
           </div>
         </div>
@@ -436,7 +436,7 @@
           <div class="subpage-topbar">
             <button class="icon-btn" onclick="navigate('customers')"><i class="ti ti-arrow-left"></i></button>
             <span class="subpage-title" id="add-customer-title">新增客戶</span>
-            <button class="text-btn" onclick="saveCustomer()">儲存</button>
+            <div style="width:36px"></div>
           </div>
           <div class="page-content">
             <div class="form-card">
@@ -457,7 +457,7 @@
                 <input class="form-input" type="text" placeholder="請輸入備註" id="customer-notes">
               </div>
             </div>
-            <button class="submit-btn" onclick="saveCustomer()">✅ 送出</button>
+            <button class="submit-btn" onclick="saveCustomer()">送出</button>
             <div style="height:20px"></div>
           </div>
         </div>
@@ -506,7 +506,7 @@
           <div class="subpage-topbar">
             <button class="icon-btn" onclick="navigate('expenses')"><i class="ti ti-arrow-left"></i></button>
             <span class="subpage-title">新增支出</span>
-            <button class="text-btn" onclick="saveExpense()">儲存</button>
+            <div style="width:36px"></div>
           </div>
           <div class="page-content">
             <div class="amount-display">
@@ -540,7 +540,7 @@
                 </div>
               </div>
             </div>
-            <button class="submit-btn" onclick="saveExpense()">✅ 確認新增</button>
+            <button class="submit-btn" onclick="saveExpense()">確認新增</button>
             <div style="height:20px"></div>
           </div>
         </div>

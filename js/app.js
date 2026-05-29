@@ -538,24 +538,25 @@ window.saveProduct = async () => {
     productData.createdAt = Date.now();
   }
 
-  // Handle image - upload both compressed (for display) and original (for download)
+  showToast('儲存中...');
+
+  // Handle image - upload both compressed and original
   const imageData = document.getElementById('product-img-upload').dataset.imageData;
   const originalData = document.getElementById('product-img-upload').dataset.originalData;
   if (imageData) {
     try {
       const timestamp = Date.now();
-      // Upload compressed image for display
       const imgRef = ref(storage, `users/${currentUser.uid}/products/${timestamp}.jpg`);
       await uploadString(imgRef, imageData, 'data_url');
       productData.imageUrl = await getDownloadURL(imgRef);
-      // Upload original image for download
       if (originalData) {
         const origRef = ref(storage, `users/${currentUser.uid}/products_original/${timestamp}_original.jpg`);
         await uploadString(origRef, originalData, 'data_url');
         productData.imageOriginalUrl = await getDownloadURL(origRef);
       }
     } catch (e) {
-      console.log('Image upload error:', e);
+      console.log('Image upload error (continuing without image):', e);
+      // Continue saving product even if image upload fails
     }
   }
 
@@ -564,20 +565,20 @@ window.saveProduct = async () => {
       await updateDoc(doc(db, 'users', currentUser.uid, 'products', editingProductId), productData);
       const idx = products.findIndex(p => p.id === editingProductId);
       if (idx > -1) products[idx] = { id: editingProductId, ...products[idx], ...productData };
-      showToast('商品已更新');
+      showToast('商品已更新！');
     } else {
       const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'products'), productData);
       products.push({ id: docRef.id, ...productData });
-      // Add category if new
       if (category && !productCategories.includes(category)) {
         productCategories.push(category);
         await saveCategories();
       }
-      showToast('商品已新增');
+      showToast('商品已新增！');
     }
     navigate('products');
   } catch (e) {
     showToast('儲存失敗：' + e.message);
+    console.error('Save product error:', e);
   }
 };
 
@@ -1176,22 +1177,24 @@ window.saveCustomer = async () => {
     updatedAt: Date.now()
   };
 
+  showToast('儲存中...');
   try {
     if (editingCustomerId) {
       await updateDoc(doc(db, 'users', currentUser.uid, 'customers', editingCustomerId), data);
       const idx = customers.findIndex(c => c.id === editingCustomerId);
       if (idx > -1) customers[idx] = { ...customers[idx], ...data };
-      showToast('客戶已更新');
+      showToast('客戶已更新！');
     } else {
       data.createdAt = Date.now();
       data.totalAmount = 0;
       const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'customers'), data);
       customers.push({ id: docRef.id, ...data });
-      showToast('客戶已新增');
+      showToast('客戶已新增！');
     }
     navigate('customers');
   } catch (e) {
     showToast('儲存失敗：' + e.message);
+    console.error('Save customer error:', e);
   }
 };
 
@@ -1435,13 +1438,15 @@ window.saveExpense = async () => {
     createdAt: Date.now()
   };
 
+  showToast('儲存中...');
   try {
     const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'expenses'), data);
     expenses.push({ id: docRef.id, ...data });
-    showToast('支出已新增');
+    showToast('支出已新增！');
     navigate('expenses');
   } catch (e) {
     showToast('儲存失敗：' + e.message);
+    console.error('Save expense error:', e);
   }
 };
 
