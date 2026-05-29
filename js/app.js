@@ -571,7 +571,7 @@ function initAddProduct() {
   document.getElementById('product-supplier-display').textContent = '無（選填）';
   document.getElementById('product-supplier-display').dataset.value = '';
   document.getElementById('product-notes').value = '';
-  document.getElementById('product-img-preview-wrapper').style.display = 'none'; const wrapper2 = document.getElementById('product-img-preview-wrapper'); if(wrapper2) wrapper2.style.display = 'block';
+  const _pw = document.getElementById('product-img-preview-wrapper'); if(_pw) _pw.style.display = 'none';
   document.getElementById('product-img-upload').style.display = 'flex';
   document.getElementById('product-img-upload').dataset.imageData = '';
 }
@@ -812,15 +812,15 @@ window.editProduct = (productId) => {
 
   if (p.imageUrl) {
     document.getElementById('product-img-upload').style.display = 'none';
+    const wrapper = document.getElementById('product-img-preview-wrapper');
+    if (wrapper) wrapper.style.display = 'block';
     const preview = document.getElementById('product-img-preview');
     preview.src = p.imageUrl;
-    preview.style.display = 'block';
     preview.style.cursor = 'pointer';
     preview.onclick = () => document.getElementById('product-img-input').click();
-    // Add change photo overlay hint
-    preview.title = '點擊更換照片';
   } else {
-    document.getElementById('product-img-preview-wrapper').style.display = 'none'; const wrapper2 = document.getElementById('product-img-preview-wrapper'); if(wrapper2) wrapper2.style.display = 'block';
+    const wrapper = document.getElementById('product-img-preview-wrapper');
+    if (wrapper) wrapper.style.display = 'none';
     document.getElementById('product-img-upload').style.display = 'flex';
   }
   document.getElementById('product-img-upload').dataset.imageData = '';
