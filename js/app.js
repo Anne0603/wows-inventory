@@ -710,12 +710,18 @@ window.showProductDetail = (productId) => {
           <span class="form-input" style="color:var(--blue)">$${(p.price || 0).toLocaleString()}</span>
         </div>
         <div class="form-row">
-          <span class="form-label">進價</span>
-          <span class="form-input">$${(p.cost || 0).toLocaleString()}</span>
+          <span class="form-label">參考進價</span>
+          <span class="form-input" style="color:var(--text3)">$${(p.cost || 0).toLocaleString()}</span>
         </div>
         <div class="form-row">
           <span class="form-label">實際成本</span>
-          <span class="form-input">$${(p.avgCost || p.cost || 0).toLocaleString()}</span>
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end">
+            <span style="color:var(--amber);font-size:17px;font-weight:500">$${(p.avgCost || p.cost || 0).toLocaleString()}</span>
+            <div onclick="resetAvgCost('${p.id}',${p.avgCost || p.cost || 0})"
+              style="background:var(--bg3);border-radius:6px;padding:4px 10px;cursor:pointer">
+              <span style="color:var(--text3);font-size:13px">重設</span>
+            </div>
+          </div>
         </div>
         <div class="form-row">
           <span class="form-label">單品利潤</span>
@@ -750,9 +756,12 @@ window.showProductDetail = (productId) => {
       </div>
 
       <div class="product-detail-actions">
-        <button class="action-btn edit" onclick="editProduct('${p.id}')">✏️ 編輯</button>
-        <button class="action-btn in" onclick="quickStockIn('${p.id}')">📦 入庫</button>
-        <button class="action-btn out" onclick="quickStockOut('${p.id}')">🚚 出庫</button>
+        <button class="action-btn edit" onclick="editProduct('${p.id}')">編輯</button>
+        <button class="action-btn in" onclick="quickStockIn('${p.id}')">快速入庫</button>
+        <button class="action-btn out" onclick="quickStockOut('${p.id}')">快速出庫</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;margin-top:8px">
+        <button class="submit-btn red" onclick="deleteProduct('${p.id}')">刪除商品</button>
       </div>
       <div style="height:20px"></div>
     </div>`;
@@ -866,6 +875,41 @@ window.saveBarcodeImage = () => {
   link.href = canvas.toDataURL();
   link.click();
   showToast('條碼圖片已儲存');
+};
+
+window.resetAvgCost = (productId, currentCost) => {
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">重設實際成本</div>
+    <p style="color:var(--text3);font-size:14px;margin-bottom:16px;text-align:center">
+      目前實際成本：$${currentCost}<br>
+      <span style="color:var(--text4);font-size:12px">重設後將以新成本繼續計算加權平均</span>
+    </p>
+    <div class="form-card" style="margin-bottom:16px">
+      <div class="form-row" style="border-bottom:none">
+        <span class="form-label">新成本</span>
+        <input class="form-input" type="number" id="new-avg-cost-input" placeholder="輸入新的成本" value="${currentCost}" style="font-size:18px;font-weight:500;color:var(--amber)">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">取消</button>
+      <button class="submit-btn" onclick="confirmResetAvgCost('${productId}')">確認重設</button>
+    </div>`);
+  setTimeout(() => document.getElementById('new-avg-cost-input')?.focus(), 100);
+};
+
+window.confirmResetAvgCost = async (productId) => {
+  const newCost = parseFloat(document.getElementById('new-avg-cost-input')?.value);
+  if (!newCost || newCost <= 0) { showToast('請輸入有效成本'); return; }
+  try {
+    await updateDoc(doc(db, 'users', currentUser.uid, 'products', productId), { avgCost: newCost });
+    const p = products.find(x => x.id === productId);
+    if (p) p.avgCost = newCost;
+    forceCloseModal();
+    showToast('實際成本已重設！');
+    showProductDetail(productId); // refresh detail page
+  } catch(e) {
+    showToast('更新失敗：' + e.message);
+  }
 };
 
 window.quickStockIn = (productId) => {
@@ -1390,7 +1434,10 @@ window.showCustomerDetail = (customerId) => {
         </div>
       </div>
 
-      <button class="submit-btn red" onclick="deleteCustomer('${c.id}')">🗑️ 刪除客戶</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="editCustomer('${c.id}')">修改</button>
+        <button class="submit-btn red" onclick="deleteCustomer('${c.id}')">刪除客戶</button>
+      </div>
       <div style="height:20px"></div>
     </div>`;
 
@@ -1541,8 +1588,8 @@ window.showExpenseDetail = (expenseId) => {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="submit-btn red" onclick="deleteExpense('${e.id}')">🗑️ 刪除</button>
-      <button class="submit-btn" onclick="saveExpenseEdit('${e.id}')">儲存修改</button>
+      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="saveExpenseEdit('${e.id}')">修改</button>
+      <button class="submit-btn red" onclick="deleteExpense('${e.id}')">刪除</button>
     </div>`);
 };
 
@@ -1798,8 +1845,8 @@ window.showStockOutDetail = (orderId) => {
         <div class="form-row" style="border-bottom:none"><span class="form-label">出庫總價</span><span class="form-input" style="color:var(--green)">$${(o.totalAmount||0).toLocaleString()}</span></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
-        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="editStockOutOrder('${o.id}')">✏️ 修改</button>
-        <button class="submit-btn red" onclick="deleteStockOutOrder('${o.id}')">🗑️ 刪除</button>
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="editStockOutOrder('${o.id}')">修改</button>
+        <button class="submit-btn red" onclick="deleteStockOutOrder('${o.id}')">刪除</button>
       </div>
       <div style="height:20px"></div>
     </div>`;
@@ -1880,7 +1927,9 @@ window.showStockInDetail = (orderId) => {
         <div class="form-row"><span class="form-label">附加成本</span><span class="form-input">$${(o.shipping||0).toLocaleString()}</span></div>
         <div class="form-row" style="border-bottom:none"><span class="form-label">入庫總金額</span><span class="form-input" style="color:var(--blue)">$${(o.totalCost||0).toLocaleString()}</span></div>
       </div>
-      <button class="submit-btn red" onclick="deleteStockInOrder('${o.id}')">🗑️ 刪除此入庫單</button>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px">
+        <button class="submit-btn red" onclick="deleteStockInOrder('${o.id}')">刪除此入庫單</button>
+      </div>
       <div style="height:20px"></div>
     </div>`;
   navigate('stock-in-detail');
