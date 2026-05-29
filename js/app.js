@@ -376,7 +376,7 @@ window.showLowStockList = () => {
     <div class="modal-title">低庫存商品</div>
     <div class="form-card" style="margin:0">
       ${lowStockProducts.map(p => `
-        <div class="alert-list-item" onclick="closeModal();showProductDetail('${p.id}')">
+        <div class="alert-list-item" onclick="forceCloseModal();window._fromHomeAlert=true;showProductDetail('${p.id}')">
           <div style="flex:1">
             <div style="color:var(--text2);font-size:17px;font-weight:500">${p.name}</div>
             <div style="color:var(--text4);font-size:15px;margin-top:2px">${p.model || ''}</div>
@@ -403,7 +403,7 @@ window.showStaleStockList = () => {
     <div class="modal-title">滯銷商品</div>
     <div class="form-card" style="margin:0">
       ${staleProducts.map(p => `
-        <div class="alert-list-item" onclick="closeModal();showProductDetail('${p.id}')">
+        <div class="alert-list-item" onclick="forceCloseModal();window._fromHomeAlert=true;showProductDetail('${p.id}')">
           <div style="flex:1">
             <div style="color:var(--text2);font-size:17px;font-weight:500">${p.name}</div>
             <div style="color:var(--text4);font-size:15px;margin-top:2px">${p.lastOutDate ? '最後出庫：'+p.lastOutDate : '從未出庫'}</div>
@@ -571,7 +571,7 @@ function initAddProduct() {
   document.getElementById('product-supplier-display').textContent = '無（選填）';
   document.getElementById('product-supplier-display').dataset.value = '';
   document.getElementById('product-notes').value = '';
-  document.getElementById('product-img-preview-wrapper').style.display = 'none'; document.getElementById('product-img-preview-wrapper').style.display = 'block'; document.getElementById('product-img-preview').style.display = 'block';
+  document.getElementById('product-img-preview-wrapper').style.display = 'none'; const wrapper2 = document.getElementById('product-img-preview-wrapper'); if(wrapper2) wrapper2.style.display = 'block';
   document.getElementById('product-img-upload').style.display = 'flex';
   document.getElementById('product-img-upload').dataset.imageData = '';
 }
@@ -820,7 +820,7 @@ window.editProduct = (productId) => {
     // Add change photo overlay hint
     preview.title = '點擊更換照片';
   } else {
-    document.getElementById('product-img-preview-wrapper').style.display = 'none'; document.getElementById('product-img-preview-wrapper').style.display = 'block'; document.getElementById('product-img-preview').style.display = 'block';
+    document.getElementById('product-img-preview-wrapper').style.display = 'none'; const wrapper2 = document.getElementById('product-img-preview-wrapper'); if(wrapper2) wrapper2.style.display = 'block';
     document.getElementById('product-img-upload').style.display = 'flex';
   }
   document.getElementById('product-img-upload').dataset.imageData = '';
@@ -841,8 +841,8 @@ window.goBackFromProductDetail = () => {
 
 window.showProductDetailMenu = () => {
   showModal(`<div class="modal-handle"></div>
-    <div class="picker-item" onclick="closeModal();editProduct('${currentProductDetailId}')"><i class="ti ti-edit"></i> 編輯商品</div>
-    <div class="picker-item" style="color:var(--red)" onclick="closeModal();deleteProduct('${currentProductDetailId}')"><i class="ti ti-trash"></i> 刪除商品</div>`);
+    <div class="picker-item" onclick="forceCloseModal();editProduct('${currentProductDetailId}')"><i class="ti ti-edit"></i> 編輯商品</div>
+    <div class="picker-item" style="color:var(--red)" onclick="forceCloseModal();deleteProduct('${currentProductDetailId}')"><i class="ti ti-trash"></i> 刪除商品</div>`);
 };
 
 window.deleteProduct = (productId) => {
@@ -1174,6 +1174,7 @@ function initStockOut() {
   stockOutCustomerId = null;
   window._editingStockOutId = null;
   document.getElementById('stock-out-customer-display').textContent = '請選擇客戶（必填）';
+  document.getElementById('stock-out-customer-display').dataset.value = '';
   document.getElementById('stock-out-customer-display').dataset.value = '';
   document.getElementById('stock-out-notes').value = '';
   const btn = document.getElementById('confirm-stock-out-btn');
