@@ -329,13 +329,15 @@ function updateHomePage() {
     document.getElementById('alert-low-stock').style.display = 'none';
   }
 
-  // Stale stock alert
+  // Stale stock alert - only count products older than staleDays with no recent out
   const staleDays = userSettings.staleDays || 30;
   const staleProducts = products.filter(p => {
-    if (!p.lastOutDate) return p.stock > 0;
-    const last = new Date(p.lastOutDate);
-    const diff = (today - last) / (1000 * 60 * 60 * 24);
-    return diff > staleDays && p.stock > 0;
+    if (p.stock <= 0) return false; // 庫存為0不算滯銷
+    const baseDate = p.lastOutDate
+      ? new Date(p.lastOutDate)
+      : new Date(p.createdAt || Date.now());
+    const diff = (today - baseDate) / (1000 * 60 * 60 * 24);
+    return diff > staleDays;
   });
   if (staleProducts.length > 0) {
     document.getElementById('alert-stale-stock').style.display = 'flex';
@@ -2633,8 +2635,11 @@ function checkBackupReminder() {
   const lowStock = products.filter(p => p.stock <= userSettings.lowStockThreshold && p.stock >= 0);
   const staleDays = userSettings.staleDays || 30;
   const stale = products.filter(p => {
-    if (!p.lastOutDate) return false; // new products don't count
-    return ((Date.now() - new Date(p.lastOutDate)) / (1000*60*60*24)) > staleDays && p.stock > 0;
+    if (p.stock <= 0) return false;
+    const baseDate = p.lastOutDate
+      ? new Date(p.lastOutDate)
+      : new Date(p.createdAt || Date.now());
+    return ((Date.now() - baseDate) / (1000*60*60*24)) > staleDays;
   });
   const backupOverdue = userSettings.lastBackup &&
     ((Date.now() - new Date(userSettings.lastBackup)) / (1000*60*60*24)) > 7;
