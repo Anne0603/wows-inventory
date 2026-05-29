@@ -2613,58 +2613,57 @@ window.submitManualBarcode = () => {
 
 // ==================== NOTIFICATIONS ====================
 window.showNotifications = () => {
-  const notifications = [];
-  // Low stock
-  const lowStock = products.filter(p => p.stock <= userSettings.lowStockThreshold && p.stock >= 0);
-  if (lowStock.length > 0) notifications.push({ icon: 'ti ti-alert-triangle', color: 'var(--amber)', text: `${lowStock.length} 件商品庫存偏低` });
-  // Stale
-  const staleDays = userSettings.staleDays || 30;
-  const stale = products.filter(p => {
-    if (!p.lastOutDate) return p.stock > 0;
-    return ((Date.now() - new Date(p.lastOutDate)) / (1000*60*60*24)) > staleDays && p.stock > 0;
-  });
-  if (stale.length > 0) notifications.push({ icon: 'ti ti-clock', color: 'var(--blue)', text: `${stale.length} 件商品超過${staleDays}天未出庫` });
-  // Backup
-  if (!userSettings.lastBackup) {
-    notifications.push({ icon: 'ti ti-cloud-upload', color: 'var(--purple)', text: '尚未備份資料，建議立即備份' });
-  } else {
-    const lastBackup = new Date(userSettings.lastBackup);
-    const daysSince = (Date.now() - lastBackup) / (1000*60*60*24);
-    if (daysSince > 7) notifications.push({ icon: 'ti ti-cloud-upload', color: 'var(--purple)', text: `距離上次備份已超過7天` });
-  }
-
+  const notifications = getNotifications();
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title">通知</div>
     ${notifications.length === 0
-      ? '<div class="empty-state"><i class="ti ti-bell"></i><p>沒有通知</p></div>'
+      ? '<div class="empty-state" style="padding:30px 0"><i class="ti ti-bell-off" style="font-size:48px;margin-bottom:12px;display:block;color:var(--text4)"></i><p style="color:var(--text4)">目前沒有通知</p></div>'
       : notifications.map(n => `
-        <div class="alert-item" style="background:var(--bg3);border-color:var(--border);margin-bottom:8px">
-          <i class="${n.icon}" style="color:${n.color}"></i>
-          <span style="color:var(--text2)">${n.text}</span>
+        <div class="alert-item" style="background:var(--bg3);border-color:var(--border);margin-bottom:8px;cursor:pointer" onclick="forceCloseModal();${n.action}">
+          <i class="${n.icon}" style="color:${n.color};font-size:20px"></i>
+          <span style="color:var(--text2);flex:1">${n.text}</span>
+          <i class="ti ti-chevron-right" style="color:var(--text4)"></i>
         </div>`).join('')}
+    <button class="submit-btn" style="margin-top:12px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border)" onclick="dismissNotifications()">已閱讀，清除紅點 24小時</button>
     <button class="submit-btn" style="margin-top:8px" onclick="forceCloseModal()">關閉</button>`);
-
-  // Hide badge after viewing
-  document.getElementById('notification-badge').style.display = 'none';
-  // Re-check after a moment in case still relevant
-  setTimeout(checkBackupReminder, 500);
 };
 
-function checkBackupReminder() {
-  // Only show badge if there are real notifications (low stock, stale, overdue backup)
-  const lowStock = products.filter(p => p.stock <= userSettings.lowStockThreshold && p.stock >= 0);
+function getNotifications() {
+  const list = [];
+  const lowStock = products.filter(p => p.stock !== undefined && p.stock >= 0 && p.stock <= userSettings.lowStockThreshold);
+  if (lowStock.length > 0) list.push({ icon: 'ti ti-alert-triangle', color: 'var(--amber)', text: `${lowStock.length} 件商品庫存偏低`, action: 'showLowStockList()' });
   const staleDays = userSettings.staleDays || 30;
   const stale = products.filter(p => {
     if (p.stock <= 0) return false;
-    const baseDate = p.lastOutDate
-      ? new Date(p.lastOutDate)
-      : new Date(p.createdAt || Date.now());
+    const baseDate = p.lastOutDate ? new Date(p.lastOutDate) : new Date(p.createdAt || Date.now());
     return ((Date.now() - baseDate) / (1000*60*60*24)) > staleDays;
   });
-  const backupOverdue = userSettings.lastBackup &&
-    ((Date.now() - new Date(userSettings.lastBackup)) / (1000*60*60*24)) > 7;
+  if (stale.length > 0) list.push({ icon: 'ti ti-clock', color: 'var(--blue)', text: `${stale.length} 件商品超過${staleDays}天未出庫`, action: 'showStaleStockList()' });
+  if (userSettings.lastBackup) {
+    const daysSince = (Date.now() - new Date(userSettings.lastBackup)) / (1000*60*60*24);
+    if (daysSince > 7) list.push({ icon: 'ti ti-cloud-upload', color: 'var(--purple)', text: '距離上次備份已超過7天', action: 'backupData()' });
+  }
+  return list;
+}
 
-  const hasNotif = lowStock.length > 0 || stale.length > 0 || backupOverdue;
+window.dismissNotifications = () => {
+  userSettings.notificationDismissed = Date.now();
+  saveSettings();
+  document.getElementById('notification-badge').style.display = 'none';
+  forceCloseModal();
+  showToast('已清除紅點，24小時內不再提醒');
+};
+
+
+function checkBackupReminder() {
+  if (userSettings.notificationDismissed) {
+    const hoursSince = (Date.now() - userSettings.notificationDismissed) / (1000*60*60);
+    if (hoursSince < 24) {
+      document.getElementById('notification-badge').style.display = 'none';
+      return;
+    }
+  }
+  const hasNotif = getNotifications().length > 0;
   document.getElementById('notification-badge').style.display = hasNotif ? 'block' : 'none';
 }
 
