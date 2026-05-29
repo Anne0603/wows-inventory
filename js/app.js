@@ -279,7 +279,7 @@ window.navigate = (page) => {
   if (page === 'add-product' && !editingProductId) initAddProduct();
   if (page === 'add-customer' && !editingCustomerId) initAddCustomer();
   if (page === 'add-expense') initAddExpense();
-  if (page === 'stock-in') initStockIn();
+  if (page === 'stock-in' && !window._editingStockInId) initStockIn();
   if (page === 'stock-out' && !window._editingStockOutId) initStockOut();
 };
 
@@ -554,7 +554,7 @@ function initAddProduct() {
   document.getElementById('product-weight').value = '';
   document.getElementById('product-size').value = '';
   document.getElementById('product-min-stock').value = '0';
-  document.getElementById('product-supplier-display').textContent = '請選擇供應商';
+  document.getElementById('product-supplier-display').textContent = '無（選填）';
   document.getElementById('product-supplier-display').dataset.value = '';
   document.getElementById('product-notes').value = '';
   document.getElementById('product-img-preview').style.display = 'none';
@@ -618,7 +618,7 @@ window.saveProduct = async () => {
     size: document.getElementById('product-size').value.trim(),
     minStock: parseInt(document.getElementById('product-min-stock').value) || 0,
     supplierId: document.getElementById('product-supplier-display').dataset.value || '',
-    supplierName: document.getElementById('product-supplier-display').textContent,
+    supplierName: (['無（選填）','請選擇供應商'].includes(document.getElementById('product-supplier-display').textContent) ? '' : document.getElementById('product-supplier-display').textContent),
     notes: document.getElementById('product-notes').value.trim(),
     avgCost: cost,
     updatedAt: Date.now()
@@ -786,7 +786,7 @@ window.editProduct = (productId) => {
   document.getElementById('product-weight').value = p.weight || '';
   document.getElementById('product-size').value = p.size || '';
   document.getElementById('product-min-stock').value = p.minStock || 0;
-  document.getElementById('product-supplier-display').textContent = p.supplierName || '請選擇供應商';
+  document.getElementById('product-supplier-display').textContent = p.supplierName || '無（選填）';
   document.getElementById('product-supplier-display').dataset.value = p.supplierId || '';
   document.getElementById('product-notes').value = p.notes || '';
 
@@ -811,10 +811,15 @@ window.showProductDetailMenu = () => {
 
 window.deleteProduct = (productId) => {
   showConfirm('確定要刪除這個商品嗎？此操作無法復原。', async () => {
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'products', productId));
-    products = products.filter(p => p.id !== productId);
-    navigate('products');
-    showToast('商品已刪除');
+    try {
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'products', productId));
+      products = products.filter(p => p.id !== productId);
+      forceCloseModal();
+      navigate('products');
+      showToast('商品已刪除');
+    } catch(e) {
+      showToast('刪除失敗：' + e.message);
+    }
   });
 };
 
@@ -947,7 +952,8 @@ window.quickStockOut = (productId) => {
 function initStockIn() {
   stockInItems = [];
   stockInSupplierId = null;
-  document.getElementById('stock-in-supplier-display').textContent = '請選擇供應商';
+  window._editingStockInId = null;
+  document.getElementById('stock-in-supplier-display').textContent = '無（選填）';
   document.getElementById('stock-in-supplier-display').dataset.value = '';
   document.getElementById('stock-in-notes').value = '';
   document.getElementById('stock-in-shipping').value = '0';
@@ -1109,7 +1115,14 @@ window.confirmStockIn = async () => {
       }
     }
 
-    showToast(`入庫成功！單號：${orderNum}`);
+    if (window._editingStockInId) {
+      await deleteDoc(doc(db, 'users', currentUser.uid, 'stockIn', window._editingStockInId));
+      stockInOrders = stockInOrders.filter(x => x.id !== window._editingStockInId);
+      window._editingStockInId = null;
+      showToast('入庫單已更新！');
+    } else {
+      showToast(`入庫成功！單號：${orderNum}`);
+    }
     updateHomePage();
     navigate('home');
   } catch (e) {
@@ -1124,7 +1137,7 @@ function initStockOut() {
   stockOutItems = [];
   stockOutCustomerId = null;
   window._editingStockOutId = null;
-  document.getElementById('stock-out-customer-display').textContent = '請選擇客戶';
+  document.getElementById('stock-out-customer-display').textContent = '請選擇客戶（必填）';
   document.getElementById('stock-out-customer-display').dataset.value = '';
   document.getElementById('stock-out-notes').value = '';
   const btn = document.getElementById('confirm-stock-out-btn');
@@ -2024,12 +2037,29 @@ window.showStockInDetail = (orderId) => {
         <div class="form-row"><span class="form-label">附加成本</span><span class="form-input">$${(o.shipping||0).toLocaleString()}</span></div>
         <div class="form-row" style="border-bottom:none"><span class="form-label">入庫總金額</span><span class="form-input" style="color:var(--blue)">$${(o.totalCost||0).toLocaleString()}</span></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px">
-        <button class="submit-btn red" onclick="deleteStockInOrder('${o.id}')">刪除此入庫單</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="editStockInOrder('${o.id}')">修改</button>
+        <button class="submit-btn red" onclick="deleteStockInOrder('${o.id}')">刪除</button>
       </div>
       <div style="height:20px"></div>
     </div>`;
   navigate('stock-in-detail');
+};
+
+window.editStockInOrder = (orderId) => {
+  const o = stockInOrders.find(x => x.id === orderId);
+  if (!o) return;
+  stockInItems = (o.items || []).map(i => ({...i}));
+  stockInSupplierId = o.supplierId || null;
+  document.getElementById('stock-in-supplier-display').textContent = o.supplierName || '請選擇供應商';
+  document.getElementById('stock-in-supplier-display').dataset.value = o.supplierId || '';
+  document.getElementById('stock-in-notes').value = o.notes || '';
+  document.getElementById('stock-in-shipping').value = o.shipping || 0;
+  setDateDisplay('stock-in-date', new Date(o.date));
+  window._editingStockInId = orderId;
+  renderStockInItems();
+  navigate('stock-in');
+  showToast('修改模式：請調整後重新確認入庫');
 };
 
 function renderProfitRanking() {
