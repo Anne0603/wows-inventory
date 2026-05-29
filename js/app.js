@@ -1391,7 +1391,7 @@ window.showExpenseDetail = (expenseId) => {
     </div>
     <div style="display:flex;gap:8px">
       <button class="submit-btn" style="background:var(--bg3);color:var(--red)" onclick="deleteExpense('${e.id}')">🗑️ 刪除</button>
-      <button class="submit-btn" onclick="closeModal()">關閉</button>
+      <button class="submit-btn" onclick="forceCloseModal()">關閉</button>
     </div>`);
 };
 
@@ -2540,7 +2540,7 @@ window.showNotifications = () => {
           <i class="${n.icon}" style="color:${n.color}"></i>
           <span style="color:var(--text2)">${n.text}</span>
         </div>`).join('')}
-    <button class="submit-btn" style="margin-top:8px" onclick="closeModal()">關閉</button>`);
+    <button class="submit-btn" style="margin-top:8px" onclick="forceCloseModal()">關閉</button>`);
 
   document.getElementById('notification-badge').style.display = 'none';
 };
@@ -2562,9 +2562,13 @@ function showModal(html) {
 }
 
 window.closeModal = (event) => {
-  if (!event || event.target === document.getElementById('modal-overlay')) {
+  if (!event || event.target === document.getElementById('modal-overlay') || event === true) {
     document.getElementById('modal-overlay').classList.remove('active');
   }
+};
+
+window.forceCloseModal = () => {
+  document.getElementById('modal-overlay').classList.remove('active');
 };
 
 function showConfirm(message, onConfirm) {
@@ -2572,12 +2576,12 @@ function showConfirm(message, onConfirm) {
     <div class="confirm-dialog">
       <p>${message}</p>
       <div class="confirm-btns">
-        <button class="btn-cancel" onclick="closeModal(event)">取消</button>
+        <button class="btn-cancel" onclick="forceCloseModal()">取消</button>
         <button class="btn-confirm" id="confirm-yes-btn">確定</button>
       </div>
     </div>`);
   document.getElementById('confirm-yes-btn').onclick = () => {
-    closeModal({ target: document.getElementById('modal-overlay') });
+    forceCloseModal();
     onConfirm();
   };
 }
