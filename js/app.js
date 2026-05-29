@@ -873,29 +873,48 @@ window.showBarcode = (barcode, name) => {
     </div>`);
 
   setTimeout(() => {
-    drawBarcode('barcode-canvas', barcode);
+    drawBarcode('barcode-canvas', barcode, name);
   }, 100);
 };
 
-function drawBarcode(canvasId, barcode) {
+function drawBarcode(canvasId, barcode, productName) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  canvas.width = 300;
-  canvas.height = 80;
+  const hasName = productName && productName.length > 0;
+  canvas.width = 320;
+  canvas.height = hasName ? 110 : 90;
+
+  // White background
   ctx.fillStyle = 'white';
-  ctx.fillRect(0, 0, 300, 80);
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw bars
   ctx.fillStyle = 'black';
-  const barWidth = 2;
-  let x = 10;
+  const barWidth = 2.2;
+  let x = 12;
   for (let i = 0; i < barcode.length; i++) {
     const charCode = barcode.charCodeAt(i);
     for (let b = 0; b < 8; b++) {
       if ((charCode >> b) & 1) {
-        ctx.fillRect(x, 5, barWidth, 60);
+        ctx.fillRect(x, 8, barWidth, 60);
       }
-      x += barWidth + 1;
+      x += barWidth + 0.8;
     }
+  }
+
+  // Barcode number below bars
+  ctx.fillStyle = '#333';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(barcode, canvas.width / 2, 82);
+
+  // Product name at bottom
+  if (hasName) {
+    ctx.fillStyle = '#111';
+    ctx.font = 'bold 14px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(productName, canvas.width / 2, 102);
   }
 }
 
@@ -919,35 +938,18 @@ window.downloadOriginalImage = (url, name) => {
 window.saveBarcodeImage = () => {
   const canvas = document.getElementById('barcode-canvas');
   if (!canvas) return;
-  const dataUrl = canvas.toDataURL('image/png');
-  // Get product name from the modal
+  // Get product name from modal
   const nameEl = document.querySelector('#modal-body .barcode-display p');
-  const productName = nameEl ? nameEl.textContent : '';
-  const w = window.open('', '_blank');
-  if (w) {
-    w.document.write(`
-      <html><head><title>${productName} 條碼</title>
-      <meta name="viewport" content="width=device-width">
-      <style>
-        body{margin:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:-apple-system,sans-serif}
-        .card{background:#fff;border-radius:12px;padding:24px;text-align:center;max-width:360px;width:90%}
-        img{max-width:100%;border:1px solid #eee;border-radius:8px}
-        .name{color:#111;font-size:18px;font-weight:600;margin:14px 0 4px}
-        .hint{color:#888;font-size:13px;margin-bottom:16px}
-        .close-btn{background:#333;color:#fff;border:none;border-radius:8px;padding:12px 32px;font-size:16px;cursor:pointer;margin-top:8px}
-      </style></head>
-      <body>
-        <div class="card">
-          <img src="${dataUrl}">
-          <div class="name">${productName}</div>
-          <div class="hint">長按圖片即可儲存到相簿</div>
-          <button class="close-btn" onclick="window.close()">關閉</button>
-        </div>
-      </body></html>`);
-    w.document.close();
-  } else {
-    showToast('請長按條碼圖片儲存');
-  }
+  const productName = nameEl ? nameEl.textContent.trim() : 'barcode';
+  const dataUrl = canvas.toDataURL('image/png');
+  // Direct download
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = `${productName}_條碼.png`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('條碼已儲存！');
 };
 
 window.resetAvgCost = (productId, currentCost) => {
