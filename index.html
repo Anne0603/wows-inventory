@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#12182b">
+  <title>進銷存管理</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen active">
+      <div class="login-container">
+        <div class="login-logo">
+          <div class="login-logo-icon">
+            <i class="ti ti-building-store"></i>
+          </div>
+          <h1>進銷存管理</h1>
+          <p>請登入以繼續使用</p>
+        </div>
+        <button id="google-login-btn" class="btn-google">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          使用 Google 帳號登入
+        </button>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="screen">
+      <!-- Top Bar -->
+      <div class="topbar">
+        <div class="topbar-left" id="shop-info">
+          <div class="shop-avatar" id="shop-avatar-img">
+            <i class="ti ti-building-store"></i>
+          </div>
+          <span class="shop-name" id="shop-name-display">我的店</span>
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn" id="notification-btn">
+            <i class="ti ti-bell"></i>
+            <span class="badge" id="notification-badge" style="display:none"></span>
+          </button>
+          <button class="icon-btn" id="settings-btn">
+            <i class="ti ti-settings"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Container -->
+      <div class="page-container" id="page-container">
+        <!-- Home Page -->
+        <div class="page active" id="page-home">
+          <div class="page-content">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">今日入庫金額</div>
+                <div class="stat-value blue" id="today-in">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">今日出庫金額</div>
+                <div class="stat-value green" id="today-out">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">本月利潤</div>
+                <div class="stat-value purple" id="month-profit">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">庫存總價值</div>
+                <div class="stat-value amber" id="total-inventory-value">$0</div>
+              </div>
+            </div>
+
+            <!-- Monthly Badge -->
+            <div class="monthly-badge">
+              <span class="monthly-label">本月出庫筆數</span>
+              <span class="monthly-value" id="month-out-count">0 筆</span>
+            </div>
+
+            <!-- Alerts -->
+            <div id="alert-low-stock" class="alert-item warn" style="display:none" onclick="showLowStockList()">
+              <i class="ti ti-alert-triangle"></i>
+              <span id="alert-low-stock-text"></span>
+              <i class="ti ti-chevron-right" style="margin-left:auto"></i>
+            </div>
+            <div id="alert-stale-stock" class="alert-item info" style="display:none" onclick="showStaleStockList()">
+              <i class="ti ti-clock"></i>
+              <span id="alert-stale-stock-text"></span>
+              <i class="ti ti-chevron-right" style="margin-left:auto"></i>
+            </div>
+
+            <!-- Menu Grid -->
+            <div class="section-label">功能選單</div>
+            <div class="menu-grid">
+              <div class="menu-btn" onclick="navigate('stock-in')">
+                <div class="menu-ill" style="background:#d8f5e8;">
+                  <svg width="38" height="38" viewBox="0 0 44 44">
+                    <rect x="8" y="22" width="28" height="16" rx="5" fill="#34a86a"/>
+                    <rect x="13" y="16" width="18" height="8" rx="4" fill="#5dd090"/>
+                    <rect x="16" y="26" width="12" height="6" rx="3" fill="#d8f5e8"/>
+                    <line x1="22" y1="3" x2="22" y2="16" stroke="#1e7848" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M14 10 Q22 2 30 10" stroke="#1e7848" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="menu-label">商品入庫</div>
+                <div class="menu-sub">新增進貨紀錄</div>
+              </div>
+              <div class="menu-btn" onclick="navigate('stock-out')">
+                <div class="menu-ill" style="background:#fde8e4;">
+                  <svg width="38" height="38" viewBox="0 0 44 44">
+                    <rect x="8" y="6" width="28" height="16" rx="5" fill="#e05545"/>
+                    <rect x="13" y="20" width="18" height="8" rx="4" fill="#f07868"/>
+                    <rect x="16" y="10" width="12" height="6" rx="3" fill="#fde8e4"/>
+                    <line x1="22" y1="28" x2="22" y2="41" stroke="#b03020" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M14 34 Q22 42 30 34" stroke="#b03020" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="menu-label">商品出庫</div>
+                <div class="menu-sub">建立出貨訂單</div>
+              </div>
+              <div class="menu-btn" onclick="navigate('products')">
+                <div class="menu-ill" style="background:#ddeeff;">
+                  <svg width="38" height="38" viewBox="0 0 44 44">
+                    <rect x="5" y="16" width="22" height="20" rx="4" fill="#2e68cc"/>
+                    <rect x="5" y="16" width="22" height="7" rx="4" fill="#4888ee"/>
+                    <rect x="5" y="20" width="22" height="3" fill="#4888ee"/>
+                    <rect x="9" y="27" width="12" height="2.5" rx="1.2" fill="#ddeeff"/>
+                    <rect x="9" y="31" width="8" height="2.5" rx="1.2" fill="#ddeeff" opacity="0.6"/>
+                    <rect x="13" y="11" width="10" height="7" rx="3" fill="#3878de"/>
+                    <circle cx="31" cy="26" r="7" fill="none" stroke="#4888ee" stroke-width="2.8"/>
+                    <circle cx="31" cy="26" r="4" fill="#a0c8ff" opacity="0.4"/>
+                    <line x1="36.5" y1="31.5" x2="41" y2="36" stroke="#2e68cc" stroke-width="3" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="menu-label">商品管理</div>
+                <div class="menu-sub">管理商品資料</div>
+              </div>
+              <div class="menu-btn" onclick="navigate('customers')">
+                <div class="menu-ill" style="background:#ddf5ea;">
+                  <svg width="38" height="38" viewBox="0 0 44 44">
+                    <circle cx="22" cy="15" r="8" fill="#2aaa68"/>
+                    <circle cx="22" cy="15" r="5.5" fill="#60d898"/>
+                    <circle cx="22" cy="15" r="2.5" fill="#ddf5ea"/>
+                    <ellipse cx="22" cy="34" rx="14" ry="7" fill="#2aaa68"/>
+                    <ellipse cx="22" cy="34" rx="11" ry="5" fill="#55cc88"/>
+                    <circle cx="12" cy="16" r="5" fill="#40bb78" opacity="0.75"/>
+                    <circle cx="32" cy="16" r="5" fill="#40bb78" opacity="0.75"/>
+                  </svg>
+                </div>
+                <div class="menu-label">客戶管理</div>
+                <div class="menu-sub">管理銷售平台</div>
+              </div>
+              <div class="menu-btn" onclick="navigate('expenses')">
+                <div class="menu-ill" style="background:#fff8dc;">
+                  <svg width="38" height="38" viewBox="0 0 44 44">
+                    <rect x="6" y="12" width="32" height="22" rx="5" fill="#ffc840"/>
+                    <rect x="6" y="17" width="32" height="4" fill="#e8a820"/>
+                    <rect x="26" y="20" width="14" height="10" rx="4" fill="#e8a820"/>
+                    <rect x="27" y="21" width="12" height="8" rx="3" fill="#ffda70"/>
+                    <circle cx="33" cy="25" r="2.5" fill="#e8a820"/>
+                    <rect x="8" y="8" width="20" height="6" rx="3" fill="#c88010"/>
+                    <rect x="8" y="10" width="20" height="4" fill="#c88010"/>
+                  </svg>
+                </div>
+                <div class="menu-label">支出管理</div>
+                <div class="menu-sub">記錄雜支費用</div>
+              </div>
+              <div class="menu-btn" onclick="navigate('reports')">
+                <div class="menu-ill" style="background:#ede0ff;">
+                  <svg width="38" height="38" viewBox="0 0 44 44">
+                    <rect x="7" y="26" width="7" height="12" rx="3" fill="#6a30c0"/>
+                    <rect x="16" y="20" width="7" height="18" rx="3" fill="#8a50e0"/>
+                    <rect x="25" y="13" width="7" height="25" rx="3" fill="#aa70f8"/>
+                    <rect x="5" y="36" width="34" height="2" rx="1" fill="#6a30c0" opacity="0.3"/>
+                    <polyline points="10.5,24 19.5,18 28.5,11" stroke="#ffc030" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="10.5" cy="24" r="2.5" fill="#ffc030"/>
+                    <circle cx="19.5" cy="18" r="2.5" fill="#ffc030"/>
+                    <circle cx="28.5" cy="11" r="2.5" fill="#ffc030"/>
+                  </svg>
+                </div>
+                <div class="menu-label">報表分析</div>
+                <div class="menu-sub">查看利潤報表</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Page -->
+        <div class="page" id="page-products">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">商品管理</span>
+            <button class="icon-btn" onclick="showProductFilter()"><i class="ti ti-adjustments"></i></button>
+          </div>
+          <div class="page-content">
+            <div class="search-bar">
+              <i class="ti ti-search"></i>
+              <input type="text" placeholder="品名／型號" id="product-search" oninput="filterProducts()">
+            </div>
+            <!-- Category tabs -->
+            <div class="category-tabs" id="category-tabs"></div>
+            <!-- Product list -->
+            <div id="product-list-container"></div>
+          </div>
+          <button class="fab" onclick="navigate('add-product')"><i class="ti ti-plus"></i></button>
+        </div>
+
+        <!-- Add Product Page -->
+        <div class="page" id="page-add-product">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('products')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title" id="add-product-title">新增商品</span>
+            <button class="text-btn" onclick="saveProduct()">儲存</button>
+          </div>
+          <div class="page-content">
+            <div class="img-upload" id="product-img-upload" onclick="triggerImageUpload()">
+              <i class="ti ti-camera"></i>
+              <span>點擊上傳商品圖片</span>
+              <input type="file" id="product-img-input" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+            </div>
+            <img id="product-img-preview" style="display:none;width:100%;height:160px;object-fit:cover;border-radius:12px;margin-bottom:14px;">
+
+            <div class="section-label">基本資料（必填）</div>
+            <div class="form-card">
+              <div class="form-row">
+                <span class="form-label">商品名稱<span class="required">*</span></span>
+                <input class="form-input" type="text" placeholder="請輸入商品名稱" id="product-name">
+              </div>
+              <div class="form-row" onclick="showCategoryPicker('product')">
+                <span class="form-label">商品類別<span class="required">*</span></span>
+                <span class="form-input" id="product-category-display" style="color:#3a5070">請選擇類別</span>
+                <i class="ti ti-chevron-right form-arrow"></i>
+              </div>
+              <div class="form-row">
+                <span class="form-label">售價<span class="required">*</span></span>
+                <input class="form-input" type="number" placeholder="0" id="product-price" value="0">
+              </div>
+              <div class="form-row">
+                <span class="form-label">進價<span class="required">*</span></span>
+                <input class="form-input" type="number" placeholder="0" id="product-cost" value="0">
+              </div>
+              <div class="form-row">
+                <span class="form-label">庫存量<span class="required">*</span></span>
+                <input class="form-input" type="number" placeholder="0" id="product-stock" value="0">
+              </div>
+            </div>
+
+            <div class="section-label">其他資料（選填）</div>
+            <div class="form-card">
+              <div class="form-row">
+                <span class="form-label">型號</span>
+                <input class="form-input" type="text" placeholder="請輸入型號" id="product-model">
+              </div>
+              <div class="form-row">
+                <span class="form-label">顏色</span>
+                <input class="form-input" type="text" placeholder="請輸入顏色" id="product-color">
+              </div>
+              <div class="form-row">
+                <span class="form-label">重量(公斤)</span>
+                <input class="form-input" type="number" placeholder="0.0" id="product-weight" step="0.1">
+              </div>
+              <div class="form-row">
+                <span class="form-label">外部尺寸</span>
+                <input class="form-input" type="text" placeholder="長 x 寬 x 高" id="product-size">
+              </div>
+              <div class="form-row">
+                <span class="form-label">最低庫存量</span>
+                <input class="form-input" type="number" placeholder="0" id="product-min-stock" value="0">
+              </div>
+              <div class="form-row" onclick="showSupplierPicker()">
+                <span class="form-label">供應商</span>
+                <span class="form-input" id="product-supplier-display" style="color:#3a5070">請選擇供應商</span>
+                <i class="ti ti-chevron-right form-arrow"></i>
+              </div>
+              <div class="form-row">
+                <span class="form-label">備註</span>
+                <input class="form-input" type="text" placeholder="請輸入備註" id="product-notes">
+              </div>
+            </div>
+            <button class="submit-btn" onclick="saveProduct()">✅ 送出</button>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
+        <!-- Product Detail Page -->
+        <div class="page" id="page-product-detail">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('products')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">商品詳細</span>
+            <button class="icon-btn" id="product-detail-menu-btn" onclick="showProductDetailMenu()"><i class="ti ti-dots-vertical"></i></button>
+          </div>
+          <div class="page-content" id="product-detail-content"></div>
+        </div>
+
+        <!-- Stock In Page -->
+        <div class="page" id="page-stock-in">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">商品入庫</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="section-label">入庫資訊</div>
+            <div class="form-card">
+              <div class="form-row" onclick="showDatePicker('stock-in-date')">
+                <span class="form-label">入庫日期<span class="required">*</span></span>
+                <span class="form-input" id="stock-in-date-display"></span>
+                <i class="ti ti-calendar form-arrow"></i>
+              </div>
+              <div class="form-row" onclick="showSupplierPickerForStockIn()">
+                <span class="form-label">供應商</span>
+                <span class="form-input" id="stock-in-supplier-display" style="color:#3a5070">請選擇供應商</span>
+                <i class="ti ti-chevron-right form-arrow"></i>
+              </div>
+              <div class="form-row">
+                <span class="form-label">備註</span>
+                <input class="form-input" type="text" placeholder="請輸入備註" id="stock-in-notes">
+              </div>
+            </div>
+
+            <div class="section-label">新增商品</div>
+            <div class="add-product-row">
+              <button class="add-product-btn search" onclick="showProductPickerForStockIn()">
+                <i class="ti ti-search"></i>
+                <span>選擇商品</span>
+              </button>
+              <button class="add-product-btn scan" onclick="startBarcodeScan('stock-in')">
+                <i class="ti ti-barcode"></i>
+                <span>掃描條碼</span>
+              </button>
+            </div>
+
+            <div id="stock-in-items-container"></div>
+
+            <div class="form-card" style="background:#1a3828;border-color:#2a5838;margin-bottom:14px;" id="shipping-section">
+              <div class="form-row" style="border-bottom:none;">
+                <span class="form-label" style="color:#4ccc88;font-weight:500;">附加成本</span>
+              </div>
+              <div class="form-row">
+                <span class="form-label" style="color:#5a9070;">總附加成本</span>
+                <input class="form-input" type="number" placeholder="請輸入金額" id="stock-in-shipping" value="0" oninput="calcShipping()">
+              </div>
+              <div class="form-row" style="border-bottom:none">
+                <span class="form-label" style="color:#5a9070;">每件分攤</span>
+                <span class="form-input" style="color:#c8e8d0" id="shipping-per-item">$0</span>
+              </div>
+            </div>
+
+            <div class="total-row">
+              <span class="total-label">入庫總金額</span>
+              <span class="total-value" id="stock-in-total">$0</span>
+            </div>
+            <button class="submit-btn green" onclick="confirmStockIn()">✅ 確認入庫</button>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
+        <!-- Stock Out Page -->
+        <div class="page" id="page-stock-out">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">商品出庫</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="section-label">出庫資訊</div>
+            <div class="form-card">
+              <div class="form-row" onclick="showDatePicker('stock-out-date')">
+                <span class="form-label">出庫日期<span class="required">*</span></span>
+                <span class="form-input" id="stock-out-date-display"></span>
+                <i class="ti ti-calendar form-arrow"></i>
+              </div>
+              <div class="form-row" onclick="showCustomerPickerForStockOut()">
+                <span class="form-label">出庫客戶<span class="required">*</span></span>
+                <span class="form-input" id="stock-out-customer-display" style="color:#3a5070">請選擇客戶</span>
+                <i class="ti ti-chevron-right form-arrow"></i>
+              </div>
+              <div class="form-row">
+                <span class="form-label">備註</span>
+                <input class="form-input" type="text" placeholder="請輸入備註" id="stock-out-notes">
+              </div>
+            </div>
+
+            <div class="section-label">新增商品</div>
+            <div class="add-product-row">
+              <button class="add-product-btn search" onclick="showProductPickerForStockOut()">
+                <i class="ti ti-search"></i>
+                <span>選擇商品</span>
+              </button>
+              <button class="add-product-btn scan" onclick="startBarcodeScan('stock-out')">
+                <i class="ti ti-barcode"></i>
+                <span>掃描條碼</span>
+              </button>
+            </div>
+
+            <div id="stock-out-items-container"></div>
+
+            <div class="total-row">
+              <span class="total-label">出庫總金額</span>
+              <span class="total-value" id="stock-out-total">$0</span>
+            </div>
+            <button class="submit-btn red" id="confirm-stock-out-btn" onclick="confirmStockOut()">🚚 確認出庫</button>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
+        <!-- Customers Page -->
+        <div class="page" id="page-customers">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">客戶管理</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="search-bar">
+              <i class="ti ti-search"></i>
+              <input type="text" placeholder="搜尋客戶名稱" id="customer-search" oninput="filterCustomers()">
+            </div>
+            <div id="customer-list-container"></div>
+          </div>
+          <button class="fab" onclick="navigate('add-customer')"><i class="ti ti-plus"></i></button>
+        </div>
+
+        <!-- Add Customer Page -->
+        <div class="page" id="page-add-customer">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('customers')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title" id="add-customer-title">新增客戶</span>
+            <button class="text-btn" onclick="saveCustomer()">儲存</button>
+          </div>
+          <div class="page-content">
+            <div class="form-card">
+              <div class="form-row">
+                <span class="form-label">客戶名稱<span class="required">*</span></span>
+                <input class="form-input" type="text" placeholder="請輸入客戶名稱" id="customer-name">
+              </div>
+              <div class="form-row">
+                <span class="form-label">電話</span>
+                <input class="form-input" type="tel" placeholder="請輸入電話" id="customer-phone">
+              </div>
+              <div class="form-row">
+                <span class="form-label">地址</span>
+                <input class="form-input" type="text" placeholder="請輸入地址" id="customer-address">
+              </div>
+              <div class="form-row">
+                <span class="form-label">備註</span>
+                <input class="form-input" type="text" placeholder="請輸入備註" id="customer-notes">
+              </div>
+            </div>
+            <button class="submit-btn" onclick="saveCustomer()">✅ 送出</button>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
+        <!-- Customer Detail Page -->
+        <div class="page" id="page-customer-detail">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('customers')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">客戶詳細</span>
+            <button class="icon-btn" onclick="showCustomerDetailMenu()"><i class="ti ti-dots-vertical"></i></button>
+          </div>
+          <div class="page-content" id="customer-detail-content"></div>
+        </div>
+
+        <!-- Expenses Page -->
+        <div class="page" id="page-expenses">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">支出管理</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="month-selector">
+              <button class="icon-btn" onclick="changeExpenseMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+              <span id="expense-month-display"></span>
+              <button class="icon-btn" onclick="changeExpenseMonth(1)"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:14px;">
+              <div class="stat-card">
+                <div class="stat-label">本月支出總額</div>
+                <div class="stat-value" style="color:#e05545" id="expense-total">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">支出筆數</div>
+                <div class="stat-value amber" id="expense-count">0 筆</div>
+              </div>
+            </div>
+            <div class="section-label">本月支出明細</div>
+            <div id="expense-list-container"></div>
+          </div>
+          <button class="fab" onclick="navigate('add-expense')"><i class="ti ti-plus"></i></button>
+        </div>
+
+        <!-- Add Expense Page -->
+        <div class="page" id="page-add-expense">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('expenses')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">新增支出</span>
+            <button class="text-btn" onclick="saveExpense()">儲存</button>
+          </div>
+          <div class="page-content">
+            <div class="amount-display">
+              <div class="amount-label">支出金額</div>
+              <div class="amount-value" id="expense-amount-display">$0</div>
+            </div>
+            <div class="form-card">
+              <div class="form-row" onclick="showExpenseCategoryPicker()">
+                <span class="form-label">支出類別<span class="required">*</span></span>
+                <span class="form-input" id="expense-category-display" style="color:#3a5070">請選擇類別</span>
+                <i class="ti ti-chevron-right form-arrow"></i>
+              </div>
+              <div class="form-row">
+                <span class="form-label">金額<span class="required">*</span></span>
+                <input class="form-input" type="number" placeholder="0" id="expense-amount" oninput="updateExpenseDisplay()">
+              </div>
+              <div class="form-row" onclick="showDatePicker('expense-date')">
+                <span class="form-label">日期<span class="required">*</span></span>
+                <span class="form-input" id="expense-date-display"></span>
+                <i class="ti ti-calendar form-arrow"></i>
+              </div>
+              <div class="form-row">
+                <span class="form-label">備註</span>
+                <input class="form-input" type="text" placeholder="請輸入備註" id="expense-notes">
+              </div>
+              <div class="form-row">
+                <span class="form-label">重複提醒</span>
+                <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;">
+                  <input type="number" placeholder="每月幾號" id="expense-repeat-day" min="1" max="31" style="width:80px;background:#0e1828;border:none;color:#c8d0e8;font-size:13px;border-radius:6px;padding:4px 8px;">
+                  <span style="color:#5a7090;font-size:11px;">號提醒</span>
+                </div>
+              </div>
+            </div>
+            <button class="submit-btn" onclick="saveExpense()">✅ 確認新增</button>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
+        <!-- Reports Page -->
+        <div class="page" id="page-reports">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">報表分析</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="month-selector">
+              <button class="icon-btn" onclick="changeReportMonth(-1)"><i class="ti ti-chevron-left"></i></button>
+              <span id="report-month-display"></span>
+              <button class="icon-btn" onclick="changeReportMonth(1)"><i class="ti ti-chevron-right"></i></button>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">出庫總金額</div>
+                <div class="stat-value blue" id="report-out-total">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">進貨總成本</div>
+                <div class="stat-value" style="color:#e05545" id="report-in-total">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">支出總額</div>
+                <div class="stat-value amber" id="report-expense-total">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">本月利潤</div>
+                <div class="stat-value green" id="report-profit">$0</div>
+              </div>
+            </div>
+            <div class="stat-card" style="margin-bottom:14px;text-align:center;">
+              <div class="stat-label">毛利率</div>
+              <div class="stat-value purple" id="report-margin">0%</div>
+            </div>
+            <div class="section-label">報表項目</div>
+            <div class="form-card">
+              <div class="form-row" onclick="navigate('report-stock-out')">
+                <div class="report-icon" style="background:#2a1818;"><i class="ti ti-package-export" style="color:#e05545"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;font-weight:500;">出庫列表</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="report-out-count-sub"></div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="navigate('report-stock-in')">
+                <div class="report-icon" style="background:#1a2818;"><i class="ti ti-package-import" style="color:#4ccc88"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;font-weight:500;">入庫列表</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="report-in-count-sub"></div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="navigate('report-profit-ranking')">
+                <div class="report-icon" style="background:#1a1828;"><i class="ti ti-chart-bar" style="color:#c088f8"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;font-weight:500;">商品利潤排行</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;">哪個商品賺最多</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="navigate('report-platform')">
+                <div class="report-icon" style="background:#101828;"><i class="ti ti-users" style="color:#5ba8e8"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;font-weight:500;">平台利潤比較</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;">各平台銷售表現</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" style="border-bottom:none" onclick="navigate('report-expenses')">
+                <div class="report-icon" style="background:#2a2010;"><i class="ti ti-receipt" style="color:#f0b030"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;font-weight:500;">支出明細</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="report-expense-count-sub"></div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Stock Out Page -->
+        <div class="page" id="page-report-stock-out">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('reports')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">出庫列表</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="filter-bar" onclick="showStockOutFilter()">
+              <div>
+                <div class="filter-title" id="stock-out-filter-title">當月</div>
+                <div class="filter-sub" id="stock-out-filter-sub">全部客戶</div>
+              </div>
+              <i class="ti ti-chevron-down" style="color:#5ba8e8"></i>
+            </div>
+            <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:14px;">
+              <div class="stat-card">
+                <div class="stat-label">出庫筆數</div>
+                <div class="stat-value blue" id="rso-count">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">出庫件數</div>
+                <div class="stat-value amber" id="rso-items">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">出庫總額</div>
+                <div class="stat-value green" id="rso-total">$0</div>
+              </div>
+            </div>
+            <div id="report-stock-out-list"></div>
+          </div>
+        </div>
+
+        <!-- Report Stock In Page -->
+        <div class="page" id="page-report-stock-in">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('reports')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">入庫列表</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="filter-bar" onclick="showStockInFilter()">
+              <div>
+                <div class="filter-title" id="stock-in-filter-title">當月</div>
+                <div class="filter-sub" id="stock-in-filter-sub">全部供應商</div>
+              </div>
+              <i class="ti ti-chevron-down" style="color:#5ba8e8"></i>
+            </div>
+            <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:14px;">
+              <div class="stat-card">
+                <div class="stat-label">入庫筆數</div>
+                <div class="stat-value blue" id="rsi-count">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">入庫件數</div>
+                <div class="stat-value amber" id="rsi-items">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">入庫總額</div>
+                <div class="stat-value green" id="rsi-total">$0</div>
+              </div>
+            </div>
+            <div id="report-stock-in-list"></div>
+          </div>
+        </div>
+
+        <!-- Report Profit Ranking Page -->
+        <div class="page" id="page-report-profit-ranking">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('reports')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">商品利潤排行</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="filter-bar" onclick="showProfitRankingFilter()">
+              <div>
+                <div class="filter-title" id="profit-ranking-filter-title">當月</div>
+                <div class="filter-sub" id="profit-ranking-filter-sub">全部類別</div>
+              </div>
+              <i class="ti ti-chevron-down" style="color:#5ba8e8"></i>
+            </div>
+            <div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:14px;">
+              <div class="stat-card">
+                <div class="stat-label">總利潤</div>
+                <div class="stat-value green" id="rpr-profit">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">毛利率</div>
+                <div class="stat-value purple" id="rpr-margin">0%</div>
+              </div>
+            </div>
+            <div class="section-label">商品利潤排行</div>
+            <div id="profit-ranking-list"></div>
+          </div>
+        </div>
+
+        <!-- Report Platform Page -->
+        <div class="page" id="page-report-platform">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('reports')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">平台利潤比較</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="filter-bar" onclick="showPlatformFilter()">
+              <div>
+                <div class="filter-title" id="platform-filter-title">當月</div>
+                <div class="filter-sub">全部平台</div>
+              </div>
+              <i class="ti ti-chevron-down" style="color:#5ba8e8"></i>
+            </div>
+            <div id="platform-report-content"></div>
+          </div>
+        </div>
+
+        <!-- Report Expenses Page -->
+        <div class="page" id="page-report-expenses">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('reports')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">支出明細</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="filter-bar" onclick="showExpenseReportFilter()">
+              <div>
+                <div class="filter-title" id="expense-report-filter-title">當月</div>
+                <div class="filter-sub" id="expense-report-filter-sub">全部類別</div>
+              </div>
+              <i class="ti ti-chevron-down" style="color:#5ba8e8"></i>
+            </div>
+            <div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:14px;">
+              <div class="stat-card">
+                <div class="stat-label">支出總額</div>
+                <div class="stat-value" style="color:#e05545" id="re-total">$0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">支出筆數</div>
+                <div class="stat-value amber" id="re-count">0</div>
+              </div>
+            </div>
+            <div id="expense-report-list"></div>
+          </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div class="page" id="page-settings">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">設定</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="section-label">基本設定</div>
+            <div class="form-card">
+              <div class="form-row" onclick="editSetting('company-name')">
+                <div class="setting-icon si-blue"><i class="ti ti-building-store"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;">公司名稱</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="setting-company-name-display">我的店</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row">
+                <div class="setting-icon si-purple"><i class="ti ti-moon"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;">深色模式</div>
+                </div>
+                <div class="toggle" id="dark-mode-toggle" onclick="toggleDarkMode()">
+                  <div class="toggle-knob"></div>
+                </div>
+              </div>
+              <div class="form-row" onclick="showSortPicker()">
+                <div class="setting-icon si-gray"><i class="ti ti-arrows-sort"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;">商品排序方式</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="setting-sort-display">商品名稱 A→Z</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+            </div>
+
+            <div class="section-label">通知設定</div>
+            <div class="form-card">
+              <div class="form-row" onclick="editSetting('low-stock-threshold')">
+                <div class="setting-icon si-amber"><i class="ti ti-bell"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;">低庫存預警數量</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="setting-low-stock-display">低於 5 件</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="editSetting('stale-days')">
+                <div class="setting-icon si-amber"><i class="ti ti-history"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;">滯銷天數設定</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="setting-stale-days-display">超過 30 天</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+            </div>
+
+            <div class="section-label">類別管理</div>
+            <div class="form-card">
+              <div class="form-row" onclick="navigate('manage-categories')">
+                <div class="setting-icon si-teal"><i class="ti ti-tag"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">商品類別管理</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="navigate('manage-expense-categories')">
+                <div class="setting-icon si-teal"><i class="ti ti-wallet"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">支出類別管理</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="navigate('manage-suppliers')">
+                <div class="setting-icon si-teal"><i class="ti ti-building-store"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">供應商管理</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+            </div>
+
+            <div class="section-label">資料管理</div>
+            <div class="form-card">
+              <div class="form-row" onclick="backupData()">
+                <div class="setting-icon si-green"><i class="ti ti-cloud-upload"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;">備份至雲端</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="last-backup-display">尚未備份</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="restoreData()">
+                <div class="setting-icon si-green"><i class="ti ti-cloud-download"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">從雲端還原</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="importData()">
+                <div class="setting-icon si-blue"><i class="ti ti-file-import"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">資料匯入</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="exportData()">
+                <div class="setting-icon si-blue"><i class="ti ti-file-export"></i></div>
+                <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">資料匯出</div></div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" style="border-bottom:none" onclick="clearAllData()">
+                <div class="setting-icon si-red"><i class="ti ti-trash"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#e05545;font-size:13px;">清除所有資料</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;">需輸入「確認」才可執行</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+            </div>
+
+            <div class="section-label">帳號</div>
+            <div class="form-card">
+              <div class="form-row" style="border-bottom:none">
+                <div class="setting-icon si-blue"><i class="ti ti-brand-google"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:13px;">Google 帳號</div>
+                  <div style="color:#5a7090;font-size:11px;margin-top:2px;" id="setting-email-display"></div>
+                </div>
+                <button class="text-btn" style="color:#e05545" onclick="logout()">登出</button>
+              </div>
+            </div>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
+        <!-- Manage Categories Page -->
+        <div class="page" id="page-manage-categories">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('settings')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">商品類別管理</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="categories-content"></div>
+          <button class="fab" onclick="addNewCategory()"><i class="ti ti-plus"></i></button>
+        </div>
+
+        <!-- Manage Expense Categories Page -->
+        <div class="page" id="page-manage-expense-categories">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('settings')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">支出類別管理</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="expense-categories-content"></div>
+          <button class="fab" onclick="addNewExpenseCategory()"><i class="ti ti-plus"></i></button>
+        </div>
+
+        <!-- Manage Suppliers Page -->
+        <div class="page" id="page-manage-suppliers">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('settings')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">供應商管理</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="suppliers-content"></div>
+          <button class="fab" onclick="addNewSupplier()"><i class="ti ti-plus"></i></button>
+        </div>
+
+        <!-- Stock In Detail Page -->
+        <div class="page" id="page-stock-in-detail">
+          <div class="subpage-topbar">
+            <button class="icon-btn" id="stock-in-detail-back" onclick="navigate('report-stock-in')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">入庫單詳細</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="stock-in-detail-content"></div>
+        </div>
+
+        <!-- Stock Out Detail Page -->
+        <div class="page" id="page-stock-out-detail">
+          <div class="subpage-topbar">
+            <button class="icon-btn" id="stock-out-detail-back" onclick="navigate('report-stock-out')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">出庫單詳細</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="stock-out-detail-content"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+    <div id="modal-content" class="modal-content" onclick="event.stopPropagation()">
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Barcode Scanner -->
+  <div id="barcode-scanner" class="barcode-scanner" style="display:none">
+    <div class="scanner-topbar">
+      <button onclick="closeBarcodeScan()">取消</button>
+      <span>掃描條碼</span>
+      <div></div>
+    </div>
+    <video id="scanner-video" autoplay playsinline></video>
+    <div class="scanner-overlay">
+      <div class="scanner-frame"></div>
+      <p>將條碼對準框內</p>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
