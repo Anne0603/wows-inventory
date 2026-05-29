@@ -228,6 +228,7 @@ async function loadAllData() {
   renderProductList();
   renderCustomerList();
   renderExpenseList();
+  checkBackupReminder();
 }
 
 async function saveSettings() {
@@ -2628,13 +2629,18 @@ window.showNotifications = () => {
 };
 
 function checkBackupReminder() {
-  if (!userSettings.lastBackup) {
-    document.getElementById('notification-badge').style.display = 'block';
-    return;
-  }
-  const lastBackup = new Date(userSettings.lastBackup);
-  const daysSince = (Date.now() - lastBackup) / (1000*60*60*24);
-  if (daysSince > 7) document.getElementById('notification-badge').style.display = 'block';
+  // Only show badge if there are real notifications (low stock, stale, overdue backup)
+  const lowStock = products.filter(p => p.stock <= userSettings.lowStockThreshold && p.stock >= 0);
+  const staleDays = userSettings.staleDays || 30;
+  const stale = products.filter(p => {
+    if (!p.lastOutDate) return false; // new products don't count
+    return ((Date.now() - new Date(p.lastOutDate)) / (1000*60*60*24)) > staleDays && p.stock > 0;
+  });
+  const backupOverdue = userSettings.lastBackup &&
+    ((Date.now() - new Date(userSettings.lastBackup)) / (1000*60*60*24)) > 7;
+
+  const hasNotif = lowStock.length > 0 || stale.length > 0 || backupOverdue;
+  document.getElementById('notification-badge').style.display = hasNotif ? 'block' : 'none';
 }
 
 // ==================== MODAL ====================
