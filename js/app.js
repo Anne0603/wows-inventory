@@ -29,6 +29,7 @@ let productCategories = [];
 let expenseCategories = ['包材', '廣告費', '電話費', '印刷費', '雜支'];
 let suppliers = [];
 let currentPage = 'home';
+let currentContactTab = 'customers'; // 'customers' or 'suppliers'
 let editingProductId = null;
 let editingCustomerId = null;
 let selectedProductCategory = '全部';
@@ -264,7 +265,7 @@ window.navigate = (page) => {
   // Page-specific init
   if (page === 'home') updateHomePage();
   if (page === 'products') renderProductList();
-  if (page === 'customers') renderCustomerList();
+  if (page === 'customers') { renderCustomerList(); }
   if (page === 'expenses') renderExpenseList();
   if (page === 'reports') renderReports();
   if (page === 'report-stock-out') renderReportStockOut();
@@ -273,6 +274,15 @@ window.navigate = (page) => {
   if (page === 'report-platform') renderPlatformReport();
   if (page === 'report-expenses') renderExpenseReport();
   if (page === 'settings') renderSettings();
+  if (page === 'add-supplier') {
+    if (!editingSupplierId) {
+      document.getElementById('add-supplier-title').textContent = '新增供應商';
+      document.getElementById('supplier-name').value = '';
+      document.getElementById('supplier-phone').value = '';
+      document.getElementById('supplier-address').value = '';
+      document.getElementById('supplier-notes').value = '';
+    }
+  }
   if (page === 'manage-categories') renderCategoriesManagement();
   if (page === 'manage-expense-categories') renderExpenseCategoriesManagement();
   if (page === 'manage-suppliers') renderSuppliersManagement();
@@ -1356,6 +1366,29 @@ function renderCustomerList() {
 
 window.filterCustomers = () => renderCustomerList();
 
+window.switchContactTab = (tab) => {
+  currentContactTab = tab;
+  // Update tab styles
+  const tabC = document.getElementById('tab-customers');
+  const tabS = document.getElementById('tab-suppliers');
+  if (tabC && tabS) {
+    if (tab === 'customers') {
+      tabC.style.background = 'var(--blue)'; tabC.style.borderColor = 'var(--blue)'; tabC.style.color = 'white';
+      tabS.style.background = 'var(--bg2)'; tabS.style.borderColor = 'var(--border)'; tabS.style.color = 'var(--text3)';
+    } else {
+      tabS.style.background = 'var(--blue)'; tabS.style.borderColor = 'var(--blue)'; tabS.style.color = 'white';
+      tabC.style.background = 'var(--bg2)'; tabC.style.borderColor = 'var(--border)'; tabC.style.color = 'var(--text3)';
+    }
+  }
+  // Update search placeholder
+  const search = document.getElementById('customer-search');
+  if (search) search.placeholder = tab === 'customers' ? '搜尋客戶名稱' : '搜尋供應商名稱';
+  // Update FAB
+  const fab = document.getElementById('contact-fab');
+  if (fab) fab.onclick = tab === 'customers' ? () => navigate('add-customer') : () => navigate('add-supplier');
+  renderCustomerList();
+};
+
 function getAvatarColor(name) {
   const colors = ['#5ba8e8','#4ccc88','#c088f8','#f0b030','#e05545','#40c0a0'];
   let hash = 0;
@@ -1472,6 +1505,124 @@ window.showCustomerDetail = (customerId) => {
     </div>`;
 
   navigate('customer-detail');
+};
+
+// ==================== SUPPLIERS ====================
+let editingSupplierId = null;
+let currentSupplierDetailId = null;
+
+window.showSupplierDetail = (supplierId) => {
+  currentSupplierDetailId = supplierId;
+  const s = suppliers.find(x => x.id === supplierId);
+  if (!s) return;
+
+  const thisMonth = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const monthOrders = stockInOrders.filter(o => o.supplierId === supplierId && o.date?.startsWith(thisMonth));
+  const monthCost = monthOrders.reduce((sum, o) => sum + (o.totalCost || 0), 0);
+  const totalOrders = stockInOrders.filter(o => o.supplierId === supplierId).length;
+  const totalCost = stockInOrders.filter(o => o.supplierId === supplierId).reduce((sum, o) => sum + (o.totalCost || 0), 0);
+  const color = getAvatarColor(s.name);
+  const initials = s.name.substring(0, 2);
+
+  document.getElementById('supplier-detail-content').innerHTML = `
+    <div style="padding:14px">
+      <div class="customer-header-card">
+        <div style="width:56px;height:56px;border-radius:50%;background:${color}22;color:${color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:500;flex-shrink:0">${initials}</div>
+        <div style="flex:1">
+          <div style="color:var(--text);font-size:16px;font-weight:500">${s.name}</div>
+          <div style="color:var(--text4);font-size:12px;margin-top:3px">${s.phone || '未填寫電話'}</div>
+        </div>
+        <button class="text-btn" onclick="editSupplier('${s.id}')">編輯</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">本月進貨額</div>
+          <div class="stat-value blue">$${monthCost.toLocaleString()}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">本月筆數</div>
+          <div class="stat-value amber">${monthOrders.length} 筆</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">累計進貨額</div>
+          <div class="stat-value purple">$${totalCost.toLocaleString()}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">累計筆數</div>
+          <div class="stat-value green">${totalOrders} 筆</div>
+        </div>
+      </div>
+      <div class="form-card">
+        <div class="form-row"><span class="form-label">電話</span><span class="form-input" style="${!s.phone?'color:var(--text5)':''}">${s.phone||'未填寫'}</span></div>
+        <div class="form-row"><span class="form-label">地址</span><span class="form-input" style="${!s.address?'color:var(--text5)':''}">${s.address||'未填寫'}</span></div>
+        <div class="form-row" style="border-bottom:none"><span class="form-label">備註</span><span class="form-input" style="${!s.notes?'color:var(--text5)':''}">${s.notes||'未填寫'}</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="editSupplier('${s.id}')">修改</button>
+        <button class="submit-btn red" onclick="deleteSupplierDetail('${s.id}')">刪除</button>
+      </div>
+      <div style="height:20px"></div>
+    </div>`;
+  navigate('supplier-detail');
+};
+
+window.showSupplierDetailMenu = () => {
+  showModal(`<div class="modal-handle"></div>
+    <div class="picker-item" onclick="closeModal();editSupplier('${currentSupplierDetailId}')"><i class="ti ti-edit"></i> 編輯供應商</div>
+    <div class="picker-item" style="color:var(--red)" onclick="closeModal();deleteSupplierDetail('${currentSupplierDetailId}')"><i class="ti ti-trash"></i> 刪除供應商</div>`);
+};
+
+window.editSupplier = (supplierId) => {
+  editingSupplierId = supplierId;
+  const s = suppliers.find(x => x.id === supplierId);
+  if (!s) return;
+  document.getElementById('add-supplier-title').textContent = '編輯供應商';
+  document.getElementById('supplier-name').value = s.name || '';
+  document.getElementById('supplier-phone').value = s.phone || '';
+  document.getElementById('supplier-address').value = s.address || '';
+  document.getElementById('supplier-notes').value = s.notes || '';
+  navigate('add-supplier');
+};
+
+window.saveSupplier = async () => {
+  const name = document.getElementById('supplier-name').value.trim();
+  if (!name) { showToast('請輸入供應商名稱'); return; }
+  showToast('儲存中...');
+  const data = {
+    name,
+    phone: document.getElementById('supplier-phone').value.trim(),
+    address: document.getElementById('supplier-address').value.trim(),
+    notes: document.getElementById('supplier-notes').value.trim(),
+    updatedAt: Date.now()
+  };
+  try {
+    if (editingSupplierId) {
+      const idx = suppliers.findIndex(s => s.id === editingSupplierId);
+      if (idx > -1) suppliers[idx] = { ...suppliers[idx], ...data };
+      editingSupplierId = null;
+      await saveCategories();
+      showToast('供應商已更新！');
+    } else {
+      data.id = Date.now().toString();
+      data.createdAt = Date.now();
+      suppliers.push(data);
+      await saveCategories();
+      showToast('供應商已新增！');
+    }
+    document.getElementById('add-supplier-title').textContent = '新增供應商';
+    navigate('customers');
+    switchContactTab('suppliers');
+  } catch(e) { showToast('儲存失敗：' + e.message); }
+};
+
+window.deleteSupplierDetail = (supplierId) => {
+  showConfirm('確定要刪除這個供應商嗎？', async () => {
+    suppliers = suppliers.filter(s => s.id !== supplierId);
+    await saveCategories();
+    navigate('customers');
+    switchContactTab('suppliers');
+    showToast('供應商已刪除');
+  });
 };
 
 window.editCustomer = (customerId) => {

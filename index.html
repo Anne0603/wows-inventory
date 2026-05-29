@@ -157,8 +157,8 @@
                     <circle cx="32" cy="16" r="5" fill="#40bb78" opacity="0.75"/>
                   </svg>
                 </div>
-                <div class="menu-label">客戶管理</div>
-                <div class="menu-sub">管理銷售平台</div>
+                <div class="menu-label">客戶/廠商</div>
+                <div class="menu-sub">管理客戶與供應商</div>
               </div>
               <div class="menu-btn" onclick="navigate('expenses')">
                 <div class="menu-ill" style="background:#fff8dc;">
@@ -425,17 +425,28 @@
         <div class="page" id="page-customers">
           <div class="subpage-topbar">
             <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
-            <span class="subpage-title">客戶管理</span>
+            <span class="subpage-title">客戶/廠商</span>
             <div style="width:36px"></div>
           </div>
           <div class="page-content">
+            <!-- Contact tabs -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+              <button id="tab-customers" onclick="switchContactTab('customers')"
+                style="padding:10px;border-radius:10px;border:0.5px solid var(--blue);background:var(--blue);color:white;font-size:15px;font-weight:500;cursor:pointer">
+                客戶
+              </button>
+              <button id="tab-suppliers" onclick="switchContactTab('suppliers')"
+                style="padding:10px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg2);color:var(--text3);font-size:15px;font-weight:500;cursor:pointer">
+                供應商
+              </button>
+            </div>
             <div class="search-bar">
               <i class="ti ti-search"></i>
-              <input type="text" placeholder="搜尋客戶名稱" id="customer-search" oninput="filterCustomers()">
+              <input type="text" placeholder="搜尋名稱" id="customer-search" oninput="filterCustomers()">
             </div>
             <div id="customer-list-container"></div>
           </div>
-          <button class="fab" onclick="navigate('add-customer')"><i class="ti ti-plus"></i></button>
+          <button class="fab" id="contact-fab" onclick="navigate('add-customer')"><i class="ti ti-plus"></i></button>
         </div>
 
         <!-- Add Customer Page -->
@@ -777,6 +788,47 @@
           </div>
         </div>
 
+        <!-- Supplier Detail Page -->
+        <div class="page" id="page-supplier-detail">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('customers')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">供應商詳細</span>
+            <button class="icon-btn" onclick="showSupplierDetailMenu()"><i class="ti ti-dots-vertical"></i></button>
+          </div>
+          <div class="page-content" id="supplier-detail-content"></div>
+        </div>
+
+        <!-- Add Supplier Page -->
+        <div class="page" id="page-add-supplier">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('customers')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title" id="add-supplier-title">新增供應商</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div class="form-card">
+              <div class="form-row">
+                <span class="form-label">供應商名稱<span class="required">*</span></span>
+                <input class="form-input" type="text" placeholder="請輸入供應商名稱" id="supplier-name">
+              </div>
+              <div class="form-row">
+                <span class="form-label">電話</span>
+                <input class="form-input" type="tel" placeholder="請輸入電話" id="supplier-phone">
+              </div>
+              <div class="form-row">
+                <span class="form-label">地址</span>
+                <input class="form-input" type="text" placeholder="請輸入地址" id="supplier-address">
+              </div>
+              <div class="form-row">
+                <span class="form-label">備註</span>
+                <input class="form-input" type="text" placeholder="請輸入備註" id="supplier-notes">
+              </div>
+            </div>
+            <button class="submit-btn" onclick="saveSupplier()">確認新增</button>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+
         <!-- Settings Page -->
         <div class="page" id="page-settings">
           <div class="subpage-topbar">
@@ -846,11 +898,7 @@
                 <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">支出類別管理</div></div>
                 <i class="ti ti-chevron-right" style="color:#3a5070"></i>
               </div>
-              <div class="form-row" onclick="navigate('manage-suppliers')">
-                <div class="setting-icon si-teal"><i class="ti ti-building-store"></i></div>
-                <div style="flex:1;"><div style="color:#c8d0e8;font-size:13px;">供應商管理</div></div>
-                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
-              </div>
+
             </div>
 
             <div class="section-label">資料管理</div>
