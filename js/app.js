@@ -859,22 +859,39 @@ function drawBarcode(canvasId, barcode) {
 }
 
 window.downloadOriginalImage = (url, name) => {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${name}_原圖.jpg`;
-  a.target = '_blank';
-  a.click();
-  showToast('原圖下載中...');
+  // Open in new tab - user can long press to save on mobile
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(`
+      <html><head><title>${name} 原圖</title>
+      <meta name="viewport" content="width=device-width">
+      <style>body{margin:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+      img{max-width:100%;max-height:90vh;object-fit:contain}
+      p{color:#fff;font-size:14px;margin:12px;text-align:center;font-family:sans-serif}</style></head>
+      <body><img src="${url}"><p>長按圖片即可儲存到相簿</p></body></html>`);
+    w.document.close();
+  } else {
+    showToast('請長按圖片儲存');
+  }
 };
 
 window.saveBarcodeImage = () => {
   const canvas = document.getElementById('barcode-canvas');
   if (!canvas) return;
-  const link = document.createElement('a');
-  link.download = 'barcode.png';
-  link.href = canvas.toDataURL();
-  link.click();
-  showToast('條碼圖片已儲存');
+  const dataUrl = canvas.toDataURL('image/png');
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(`
+      <html><head><title>條碼</title>
+      <meta name="viewport" content="width=device-width">
+      <style>body{margin:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+      img{max-width:100%;border:1px solid #eee}
+      p{color:#333;font-size:14px;margin:12px;text-align:center;font-family:sans-serif}</style></head>
+      <body><img src="${dataUrl}"><p>長按圖片即可儲存到相簿</p></body></html>`);
+    w.document.close();
+  } else {
+    showToast('請長按條碼圖片儲存');
+  }
 };
 
 window.resetAvgCost = (productId, currentCost) => {
@@ -1562,100 +1579,138 @@ function getExpenseIcon(category) {
   return { icon: 'ti ti-wallet', color: '#f0b030', bg: '#2a1e08' };
 }
 
+// Store current editing expense
+let _editingExpense = null;
+
 window.showExpenseDetail = (expenseId) => {
   const e = expenses.find(x => x.id === expenseId);
   if (!e) return;
+  _editingExpense = { ...e };
+  renderExpenseDetailModal();
+};
+
+function renderExpenseDetailModal() {
+  const e = _editingExpense;
+  if (!e) return;
+  const icon = getExpenseIcon(e.category);
   showModal(`<div class="modal-handle"></div>
-    <div class="modal-title">支出詳細</div>
-    <div class="form-card" style="margin:0 0 16px">
-      <div class="form-row" onclick="showExpenseCategoryPickerInModal('${e.id}')">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div class="expense-icon" style="background:${icon.bg};width:40px;height:40px">
+        <i class="${icon.icon}" style="color:${icon.color};font-size:18px"></i>
+      </div>
+      <div>
+        <div style="color:var(--text);font-size:16px;font-weight:500">${e.category}</div>
+        <div style="color:var(--red);font-size:14px">$${(e.amount||0).toLocaleString()}</div>
+      </div>
+    </div>
+    <div class="form-card" style="margin-bottom:16px">
+      <div class="form-row" onclick="editExpenseField('category')">
         <span class="form-label">類別</span>
-        <span class="form-input" id="edit-expense-cat-${e.id}">${e.category}</span>
+        <span class="form-input">${e.category}</span>
         <i class="ti ti-chevron-right" style="color:var(--text5)"></i>
       </div>
-      <div class="form-row">
+      <div class="form-row" onclick="editExpenseField('amount')">
         <span class="form-label">金額</span>
-        <input class="form-input" type="number" id="edit-expense-amt-${e.id}" value="${e.amount||0}" style="color:var(--red)">
+        <span class="form-input" style="color:var(--red)">$${(e.amount||0).toLocaleString()}</span>
+        <i class="ti ti-chevron-right" style="color:var(--text5)"></i>
       </div>
-      <div class="form-row" onclick="showDatePickerInModal('${e.id}')">
+      <div class="form-row" onclick="editExpenseField('date')">
         <span class="form-label">日期</span>
-        <span class="form-input" id="edit-expense-date-${e.id}" data-value="${e.date}">${e.date}</span>
+        <span class="form-input">${e.date}</span>
         <i class="ti ti-calendar" style="color:var(--text5)"></i>
       </div>
-      <div class="form-row" style="border-bottom:none">
+      <div class="form-row" style="border-bottom:none" onclick="editExpenseField('notes')">
         <span class="form-label">備註</span>
-        <input class="form-input" type="text" id="edit-expense-notes-${e.id}" value="${e.notes||''}">
+        <span class="form-input" style="color:${e.notes?'var(--text2)':'var(--text5)'}">${e.notes||'點擊新增備註'}</span>
+        <i class="ti ti-chevron-right" style="color:var(--text5)"></i>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="saveExpenseEdit('${e.id}')">修改</button>
+      <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">關閉</button>
       <button class="submit-btn red" onclick="deleteExpense('${e.id}')">刪除</button>
     </div>`);
+}
+
+window.editExpenseField = (field) => {
+  const e = _editingExpense;
+  if (!e) return;
+  if (field === 'category') {
+    showModal(`<div class="modal-handle"></div>
+      <div class="modal-title">選擇類別</div>
+      <div class="form-card" style="margin:0">
+        ${expenseCategories.map(c => `
+          <div class="picker-item" onclick="updateEditingExpense('category','${c}')">
+            ${c} ${e.category===c ? '<i class="ti ti-check" style="color:var(--blue)"></i>' : ''}
+          </div>`).join('')}
+      </div>`);
+  } else if (field === 'amount') {
+    showModal(`<div class="modal-handle"></div>
+      <div class="modal-title">修改金額</div>
+      <div class="form-card" style="margin-bottom:16px">
+        <div class="form-row" style="border-bottom:none">
+          <span class="form-label">金額</span>
+          <input class="form-input" type="number" id="edit-amt-input" value="${e.amount||0}"
+            style="font-size:20px;font-weight:500;color:var(--red)">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="renderExpenseDetailModal()">取消</button>
+        <button class="submit-btn" onclick="updateEditingExpense('amount',document.getElementById('edit-amt-input').value)">確認</button>
+      </div>`);
+    setTimeout(()=>document.getElementById('edit-amt-input')?.focus(),100);
+  } else if (field === 'date') {
+    const d = new Date(e.date);
+    const years = Array.from({length:5},(_,i)=>new Date().getFullYear()-2+i);
+    showModal(`<div class="modal-handle"></div>
+      <div class="modal-title">選擇日期</div>
+      <div class="date-picker-selects">
+        <select id="ep-year" style="flex:1.5">${years.map(y=>`<option value="${y}" ${y===d.getFullYear()?'selected':''}>${y}年</option>`).join('')}</select>
+        <select id="ep-month">${Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}" ${m===d.getMonth()+1?'selected':''}>${m}月</option>`).join('')}</select>
+        <select id="ep-day">${Array.from({length:31},(_,i)=>i+1).map(day=>`<option value="${day}" ${day===d.getDate()?'selected':''}>${day}日</option>`).join('')}</select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="renderExpenseDetailModal()">取消</button>
+        <button class="submit-btn" onclick="confirmExpenseDate()">確認</button>
+      </div>`);
+  } else if (field === 'notes') {
+    showModal(`<div class="modal-handle"></div>
+      <div class="modal-title">修改備註</div>
+      <div class="form-card" style="margin-bottom:16px">
+        <div class="form-row" style="border-bottom:none">
+          <input class="form-input" type="text" id="edit-notes-input" value="${e.notes||''}"
+            placeholder="輸入備註" style="font-size:16px">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="renderExpenseDetailModal()">取消</button>
+        <button class="submit-btn" onclick="updateEditingExpense('notes',document.getElementById('edit-notes-input').value)">確認</button>
+      </div>`);
+    setTimeout(()=>document.getElementById('edit-notes-input')?.focus(),100);
+  }
 };
 
-window.saveExpenseEdit = async (expenseId) => {
-  const cat = document.getElementById(`edit-expense-cat-${expenseId}`)?.textContent;
-  const amt = parseFloat(document.getElementById(`edit-expense-amt-${expenseId}`)?.value) || 0;
-  const date = document.getElementById(`edit-expense-date-${expenseId}`)?.dataset.value;
-  const notes = document.getElementById(`edit-expense-notes-${expenseId}`)?.value || '';
-  if (!cat || amt <= 0) { showToast('請填寫完整資料'); return; }
+window.confirmExpenseDate = () => {
+  const y = document.getElementById('ep-year').value;
+  const m = String(document.getElementById('ep-month').value).padStart(2,'0');
+  const d = String(document.getElementById('ep-day').value).padStart(2,'0');
+  updateEditingExpense('date', `${y}-${m}-${d}`);
+};
+
+window.updateEditingExpense = async (field, value) => {
+  if (!_editingExpense) return;
+  if (field === 'amount') value = parseFloat(value) || 0;
+  _editingExpense[field] = value;
   try {
-    await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', expenseId), { category: cat, amount: amt, date, notes });
-    const idx = expenses.findIndex(e => e.id === expenseId);
-    if (idx > -1) expenses[idx] = { ...expenses[idx], category: cat, amount: amt, date, notes };
-    forceCloseModal();
+    await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', _editingExpense.id), { [field]: value });
+    const idx = expenses.findIndex(e => e.id === _editingExpense.id);
+    if (idx > -1) expenses[idx] = { ...expenses[idx], [field]: value };
     renderExpenseList();
-    showToast('支出已更新！');
-  } catch(err) { showToast('更新失敗：' + err.message); }
+    renderExpenseDetailModal();
+    showToast('已更新！');
+  } catch(err) { showToast('更新失敗'); }
 };
 
-window.showExpenseCategoryPickerInModal = (expenseId) => {
-  showModal(`<div class="modal-handle"></div>
-    <div class="modal-title">選擇類別</div>
-    <div class="form-card" style="margin:0">
-      ${expenseCategories.map(c => `
-        <div class="picker-item" onclick="selectExpenseCatForEdit('${expenseId}','${c}')">${c}</div>
-      `).join('')}
-    </div>`);
-};
 
-window.selectExpenseCatForEdit = (expenseId, cat) => {
-  const el = document.getElementById('edit-expense-cat-' + expenseId);
-  if (el) el.textContent = cat;
-  forceCloseModal();
-  showExpenseDetail(expenseId.replace ? expenseId : expenseId);
-};
-
-window.showDatePickerInModal = (expenseId) => {
-  const current = document.getElementById('edit-expense-date-' + expenseId)?.dataset.value || formatDate(new Date());
-  const d = new Date(current);
-  window._editExpenseDateId = expenseId;
-  showModal(`<div class="modal-handle"></div>
-    <div class="modal-title">選擇日期</div>
-    <div class="date-picker-selects">
-      <select id="dp2-year" style="flex:1.5">
-        ${Array.from({length:5},(_,i)=>new Date().getFullYear()-2+i).map(y=>`<option value="${y}" ${y===d.getFullYear()?'selected':''}>${y}年</option>`).join('')}
-      </select>
-      <select id="dp2-month">
-        ${Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}" ${m===d.getMonth()+1?'selected':''}>${m}月</option>`).join('')}
-      </select>
-      <select id="dp2-day">
-        ${Array.from({length:31},(_,i)=>i+1).map(day=>`<option value="${day}" ${day===d.getDate()?'selected':''}>${day}日</option>`).join('')}
-      </select>
-    </div>
-    <button class="submit-btn" onclick="confirmExpenseDateEdit()">確認</button>`);
-};
-
-window.confirmExpenseDateEdit = () => {
-  const y = document.getElementById('dp2-year').value;
-  const m = String(document.getElementById('dp2-month').value).padStart(2,'0');
-  const d2 = String(document.getElementById('dp2-day').value).padStart(2,'0');
-  const dateStr = `${y}-${m}-${d2}`;
-  const expenseId = window._editExpenseDateId;
-  const el = document.getElementById('edit-expense-date-' + expenseId);
-  if (el) { el.textContent = dateStr; el.dataset.value = dateStr; }
-  forceCloseModal();
-};
 
 window.deleteExpense = (expenseId) => {
   closeModal();
