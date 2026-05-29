@@ -479,14 +479,30 @@ window.handleImageUpload = (event) => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
-    const data = e.target.result;
-    document.getElementById('product-img-upload').dataset.imageData = data;
-    document.getElementById('product-img-upload').style.display = 'none';
-    document.getElementById('product-img-preview').src = data;
-    document.getElementById('product-img-preview').style.display = 'block';
+    compressImage(e.target.result, 800, 0.75, (compressed) => {
+      document.getElementById('product-img-upload').dataset.imageData = compressed;
+      document.getElementById('product-img-upload').style.display = 'none';
+      document.getElementById('product-img-preview').src = compressed;
+      document.getElementById('product-img-preview').style.display = 'block';
+    });
   };
   reader.readAsDataURL(file);
 };
+
+function compressImage(dataUrl, maxSize, quality, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let w = img.width, h = img.height;
+    if (w > h && w > maxSize) { h = h * maxSize / w; w = maxSize; }
+    else if (h > maxSize) { w = w * maxSize / h; h = maxSize; }
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  img.src = dataUrl;
+}
 
 window.saveProduct = async () => {
   const name = document.getElementById('product-name').value.trim();
