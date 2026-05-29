@@ -624,9 +624,9 @@ input[type=number] { -moz-appearance: textfield; }
 ::-webkit-scrollbar { width: 0; }
 
 /* Product Detail */
-.product-detail-img { width: 100%; aspect-ratio: 1/1; max-height: 340px; background: var(--bg2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.product-detail-img { width: 100%; background: var(--bg2); display: flex; align-items: center; justify-content: center; }
 .product-detail-img i { font-size: 66px; color: var(--text5); }
-.product-detail-img img { width: 100%; height: 100%; object-fit: contain; background: var(--bg2); }
+.product-detail-img img { width: 100%; height: auto; max-height: 400px; object-fit: contain; background: var(--bg2); display: block; }
 .product-detail-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; }
 .action-btn { border-radius: 10px; padding: 11px 6px; text-align: center; font-size: 15px; font-weight: 500; border: none; cursor: pointer; }
 .action-btn.edit { background: var(--bg2); border: 0.5px solid var(--border); color: var(--text2); }
