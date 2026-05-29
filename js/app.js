@@ -280,7 +280,7 @@ window.navigate = (page) => {
   if (page === 'add-customer' && !editingCustomerId) initAddCustomer();
   if (page === 'add-expense') initAddExpense();
   if (page === 'stock-in') initStockIn();
-  if (page === 'stock-out') initStockOut();
+  if (page === 'stock-out' && !window._editingStockOutId) initStockOut();
 };
 
 // ==================== HOME PAGE ====================
@@ -1062,6 +1062,7 @@ window.confirmStockIn = async () => {
 function initStockOut() {
   stockOutItems = [];
   stockOutCustomerId = null;
+  window._editingStockOutId = null;
   document.getElementById('stock-out-customer-display').textContent = '請選擇客戶';
   document.getElementById('stock-out-customer-display').dataset.value = '';
   document.getElementById('stock-out-notes').value = '';
@@ -1076,6 +1077,7 @@ function renderStockOutItems() {
   if (!container) return;
   container.innerHTML = stockOutItems.map((item, idx) => {
     const p = products.find(x => x.id === item.productId);
+    const stockLeft = p ? p.stock : 0;
     return `
       <div class="stock-item-card">
         <div class="stock-item-top">
@@ -1093,7 +1095,7 @@ function renderStockOutItems() {
             <div class="input-group-label">數量</div>
             <input type="number" value="${item.qty}" min="1"
               oninput="updateStockOutItem(${idx},'qty',this.value)" style="color:var(--text2);font-size:18px;font-weight:500">
-            <div class="stock-hint">庫存剩 ${p ? p.stock : 0} 件</div>
+            <div class="stock-hint" style="color:${stockLeft===0?'var(--red)':stockLeft<=5?'var(--amber)':'var(--text4)'}">庫存剩 ${stockLeft} 件</div>
           </div>
           <div class="input-group">
             <div class="input-group-label">售價（每件）</div>
@@ -1218,6 +1220,8 @@ window.confirmStockOut = async () => {
       await deleteDoc(doc(db, 'users', currentUser.uid, 'stockOut', window._editingStockOutId));
       stockOutOrders = stockOutOrders.filter(x => x.id !== window._editingStockOutId);
       window._editingStockOutId = null;
+      const btn2 = document.getElementById('confirm-stock-out-btn');
+      if (btn2) { btn2.textContent = '確認出庫'; btn2.style.background = ''; }
       showToast('出庫單已更新！');
     } else {
       showToast(`出庫成功！單號：${orderNum}`);
@@ -1814,8 +1818,10 @@ window.editStockOutOrder = (orderId) => {
   setDateDisplay('stock-out-date', new Date(o.date));
   // Mark as editing
   window._editingStockOutId = orderId;
-  renderStockOutItems();
   navigate('stock-out');
+  renderStockOutItems();
+  const btn = document.getElementById('confirm-stock-out-btn');
+  if (btn) { btn.textContent = '確認修改'; btn.style.background = 'var(--amber)'; }
   showToast('修改模式：請調整後重新送出');
 };
 
@@ -2446,16 +2452,18 @@ window.filterPickerProducts = () => {
 };
 
 function renderPickerList(prods, callback) {
+  if (prods.length === 0) return '<div class="empty-state" style="padding:20px 0"><i class="ti ti-box" style="font-size:40px;display:block;margin-bottom:8px;color:var(--text4)"></i><p style="color:var(--text4)">沒有符合的商品</p></div>';
   return prods.map(p => `
     <div class="picker-item" onclick="selectPickerProduct('${p.id}')">
-      <div class="product-thumb" style="width:36px;height:36px">
+      <div class="product-thumb" style="width:40px;height:40px;flex-shrink:0">
         ${p.imageUrl ? `<img src="${p.imageUrl}">` : `<i class="ti ti-photo"></i>`}
       </div>
       <div style="flex:1">
-        <div style="color:var(--text2);font-size:17px">${p.name}</div>
-        <div style="color:var(--text4);font-size:15px">${p.model || ''} 庫存: ${p.stock}</div>
+        <div style="color:var(--text2);font-size:16px;font-weight:500">${p.name}</div>
+        <div style="color:var(--text4);font-size:13px;margin-top:2px">${p.model || ''} ･ 庫存: <span style="color:${p.stock===0?'var(--red)':p.stock<=5?'var(--amber)':'var(--green)'}">${p.stock}</span></div>
       </div>
-    </div>`).join('') || '<p style="text-align:center;color:var(--text4);padding:20px">沒有商品</p>';
+      <div style="color:var(--blue);font-size:14px;font-weight:500">$${p.price||0}</div>
+    </div>`).join('');
 }
 
 window.selectPickerProduct = (productId) => {
