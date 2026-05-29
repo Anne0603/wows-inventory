@@ -571,7 +571,7 @@ function initAddProduct() {
   document.getElementById('product-supplier-display').textContent = '無（選填）';
   document.getElementById('product-supplier-display').dataset.value = '';
   document.getElementById('product-notes').value = '';
-  document.getElementById('product-img-preview').style.display = 'none';
+  document.getElementById('product-img-preview-wrapper').style.display = 'none'; document.getElementById('product-img-preview-wrapper').style.display = 'block'; document.getElementById('product-img-preview').style.display = 'block';
   document.getElementById('product-img-upload').style.display = 'flex';
   document.getElementById('product-img-upload').dataset.imageData = '';
 }
@@ -586,14 +586,16 @@ window.handleImageUpload = (event) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     const original = e.target.result;
-    // Save original for download later
     document.getElementById('product-img-upload').dataset.originalData = original;
-    // Compress for display
     compressImage(original, 800, 0.75, (compressed) => {
       document.getElementById('product-img-upload').dataset.imageData = compressed;
       document.getElementById('product-img-upload').style.display = 'none';
-      document.getElementById('product-img-preview').src = compressed;
-      document.getElementById('product-img-preview').style.display = 'block';
+      const preview = document.getElementById('product-img-preview');
+      preview.src = compressed;
+      preview.style.display = 'block';
+      preview.style.cursor = 'pointer';
+      preview.onclick = () => document.getElementById('product-img-input').click();
+      preview.title = '點擊更換照片';
     });
   };
   reader.readAsDataURL(file);
@@ -810,13 +812,19 @@ window.editProduct = (productId) => {
 
   if (p.imageUrl) {
     document.getElementById('product-img-upload').style.display = 'none';
-    document.getElementById('product-img-preview').src = p.imageUrl;
-    document.getElementById('product-img-preview').style.display = 'block';
+    const preview = document.getElementById('product-img-preview');
+    preview.src = p.imageUrl;
+    preview.style.display = 'block';
+    preview.style.cursor = 'pointer';
+    preview.onclick = () => document.getElementById('product-img-input').click();
+    // Add change photo overlay hint
+    preview.title = '點擊更換照片';
   } else {
-    document.getElementById('product-img-preview').style.display = 'none';
+    document.getElementById('product-img-preview-wrapper').style.display = 'none'; document.getElementById('product-img-preview-wrapper').style.display = 'block'; document.getElementById('product-img-preview').style.display = 'block';
     document.getElementById('product-img-upload').style.display = 'flex';
   }
   document.getElementById('product-img-upload').dataset.imageData = '';
+  document.getElementById('product-img-upload').dataset.originalData = '';
 
   navigate('add-product');
 };
