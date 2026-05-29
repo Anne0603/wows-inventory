@@ -369,10 +369,12 @@ window.showStaleStockList = () => {
   const staleDays = userSettings.staleDays || 30;
   const today = new Date();
   const staleProducts = products.filter(p => {
-    if (!p.lastOutDate) return p.stock > 0;
-    const last = new Date(p.lastOutDate);
-    const diff = (today - last) / (1000 * 60 * 60 * 24);
-    return diff > staleDays && p.stock > 0;
+    if (p.stock <= 0) return false;
+    const baseDate = p.lastOutDate
+      ? new Date(p.lastOutDate)
+      : new Date(p.createdAt || Date.now());
+    const diff = (today - baseDate) / (1000 * 60 * 60 * 24);
+    return diff > staleDays;
   });
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title">滯銷商品</div>
