@@ -446,7 +446,7 @@
             </div>
             <div id="customer-list-container"></div>
           </div>
-          <button class="fab" id="contact-fab" onclick="navigate('add-customer')"><i class="ti ti-plus"></i></button>
+          <button class="fab" id="contact-fab" onclick="editingCustomerId=null;navigate('add-customer')"><i class="ti ti-plus"></i></button>
         </div>
 
         <!-- Add Customer Page -->
@@ -516,7 +516,7 @@
             <div class="section-label">本月支出明細</div>
             <div id="expense-list-container"></div>
           </div>
-          <button class="fab" onclick="navigate('add-expense')"><i class="ti ti-plus"></i></button>
+          <button class="fab" onclick="window._editingExpenseId=null;navigate('add-expense')"><i class="ti ti-plus"></i></button>
         </div>
 
         <!-- Add Expense Page -->
