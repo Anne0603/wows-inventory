@@ -910,6 +910,7 @@ function renderStockInItems() {
           <div class="input-group-label">進價（每件）</div>
           <input type="number" value="${item.cost}" min="0"
             oninput="updateStockInItem(${idx},'cost',this.value)" style="color:var(--amber);font-size:18px;font-weight:500">
+          <div id="actual-cost-${idx}" style="color:var(--green);font-size:13px;margin-top:4px"></div>
         </div>
       </div>
     </div>`).join('');
@@ -927,8 +928,10 @@ window.updateStockInItem = (idx, field, value) => {
 };
 
 function calcStockInTotal() {
-  const total = stockInItems.reduce((sum, item) => sum + (item.qty * item.cost), 0);
-  document.getElementById('stock-in-total').textContent = `$${total.toLocaleString()}`;
+  const shipping = parseFloat(document.getElementById('stock-in-shipping')?.value) || 0;
+  const itemsTotal = stockInItems.reduce((sum, item) => sum + (item.qty * item.cost), 0);
+  const grandTotal = itemsTotal + shipping;
+  document.getElementById('stock-in-total').textContent = `$${grandTotal.toLocaleString()}`;
   calcShipping();
 }
 
@@ -936,11 +939,23 @@ window.calcShipping = () => {
   const shipping = parseFloat(document.getElementById('stock-in-shipping').value) || 0;
   const totalQty = stockInItems.reduce((sum, item) => sum + (item.qty || 0), 0);
   const totalCost = stockInItems.reduce((sum, item) => sum + (item.qty * item.cost), 0);
-  if (totalCost > 0 && shipping > 0) {
+
+  if (shipping > 0 && totalQty > 0) {
     const perItem = (shipping / totalQty).toFixed(1);
-    document.getElementById('shipping-per-item').textContent = `$${perItem}`;
+    document.getElementById('shipping-per-item').textContent = `$${perItem}（每件加）`;
+    // Update each stock item card to show actual cost
+    stockInItems.forEach((item, idx) => {
+      const shippingShare = shipping / totalQty;
+      const actualCost = (item.cost + shippingShare).toFixed(1);
+      const el = document.getElementById(`actual-cost-${idx}`);
+      if (el) el.textContent = `實際成本 $${actualCost}`;
+    });
   } else {
     document.getElementById('shipping-per-item').textContent = '$0';
+    stockInItems.forEach((item, idx) => {
+      const el = document.getElementById(`actual-cost-${idx}`);
+      if (el) el.textContent = '';
+    });
   }
 };
 
@@ -2629,7 +2644,10 @@ window.showNotifications = () => {
         </div>`).join('')}
     <button class="submit-btn" style="margin-top:8px" onclick="forceCloseModal()">關閉</button>`);
 
+  // Hide badge after viewing
   document.getElementById('notification-badge').style.display = 'none';
+  // Re-check after a moment in case still relevant
+  setTimeout(checkBackupReminder, 500);
 };
 
 function checkBackupReminder() {
