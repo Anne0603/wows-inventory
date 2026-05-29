@@ -883,7 +883,7 @@ function drawBarcode(canvasId, barcode, productName) {
   const ctx = canvas.getContext('2d');
   const hasName = productName && productName.length > 0;
   canvas.width = 320;
-  canvas.height = hasName ? 110 : 90;
+  canvas.height = hasName ? 98 : 80;
 
   // White background
   ctx.fillStyle = 'white';
@@ -903,18 +903,12 @@ function drawBarcode(canvasId, barcode, productName) {
     }
   }
 
-  // Barcode number below bars
-  ctx.fillStyle = '#333';
-  ctx.font = '11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(barcode, canvas.width / 2, 82);
-
-  // Product name at bottom
+  // Product name only (no barcode number)
   if (hasName) {
     ctx.fillStyle = '#111';
-    ctx.font = 'bold 14px -apple-system, sans-serif';
+    ctx.font = 'bold 15px -apple-system, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(productName, canvas.width / 2, 102);
+    ctx.fillText(productName, canvas.width / 2, 85);
   }
 }
 
@@ -938,18 +932,37 @@ window.downloadOriginalImage = (url, name) => {
 window.saveBarcodeImage = () => {
   const canvas = document.getElementById('barcode-canvas');
   if (!canvas) return;
-  // Get product name from modal
   const nameEl = document.querySelector('#modal-body .barcode-display p');
-  const productName = nameEl ? nameEl.textContent.trim() : 'barcode';
+  const productName = nameEl ? nameEl.textContent.trim() : '';
   const dataUrl = canvas.toDataURL('image/png');
-  // Direct download
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = `${productName}_條碼.png`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  showToast('條碼已儲存！');
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write(`<!DOCTYPE html>
+<html><head>
+  <title>${productName} 條碼</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#111;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,sans-serif;padding:20px}
+    .card{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px;text-align:center}
+    img{width:100%;border-radius:8px;display:block}
+    .name{font-size:18px;font-weight:600;color:#111;margin-top:12px}
+    .hint{font-size:13px;color:#888;margin-top:6px;margin-bottom:16px}
+    .close-btn{background:#222;color:#fff;border:none;border-radius:10px;padding:14px;width:100%;font-size:16px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="${dataUrl}">
+    <div class="name">${productName}</div>
+    <div class="hint">長按圖片儲存到相簿</div>
+    <button class="close-btn" onclick="window.close()">✕ 關閉頁面</button>
+  </div>
+</body></html>`);
+    w.document.close();
+  } else {
+    showToast('請允許彈出視窗後再試');
+  }
 };
 
 window.resetAvgCost = (productId, currentCost) => {
