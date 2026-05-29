@@ -254,11 +254,11 @@ body.light {
 .product-item:last-child { border-bottom: none; }
 .product-item:active { background: var(--bg3); }
 .product-thumb {
-  width: 44px; height: 44px; border-radius: 8px;
+  width: 52px; height: 52px; border-radius: 10px;
   background: var(--bg3); overflow: hidden; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
-.product-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.product-thumb img { width: 100%; height: 100%; object-fit: contain; background: var(--bg2); }
 .product-thumb i { color: var(--text5); font-size: 22px; }
 .product-info { flex: 1; min-width: 0; }
 .product-name { color: var(--text2); font-size: 17px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -354,7 +354,7 @@ body.light {
   background: var(--bg3); overflow: hidden; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
-.stock-item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.stock-item-thumb img { width: 100%; height: 100%; object-fit: contain; background: var(--bg2); }
 .stock-item-thumb i { color: var(--text5); font-size: 20px; }
 .stock-item-name { color: var(--text2); font-size: 17px; font-weight: 500; }
 .stock-item-model { color: var(--text4); font-size: 15px; margin-top: 2px; }
@@ -624,9 +624,9 @@ input[type=number] { -moz-appearance: textfield; }
 ::-webkit-scrollbar { width: 0; }
 
 /* Product Detail */
-.product-detail-img { width: 100%; height: 200px; object-fit: cover; background: var(--bg2); display: flex; align-items: center; justify-content: center; }
+.product-detail-img { width: 100%; aspect-ratio: 1/1; max-height: 340px; background: var(--bg2); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .product-detail-img i { font-size: 66px; color: var(--text5); }
-.product-detail-img img { width: 100%; height: 100%; object-fit: cover; }
+.product-detail-img img { width: 100%; height: 100%; object-fit: contain; background: var(--bg2); }
 .product-detail-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; }
 .action-btn { border-radius: 10px; padding: 11px 6px; text-align: center; font-size: 15px; font-weight: 500; border: none; cursor: pointer; }
 .action-btn.edit { background: var(--bg2); border: 0.5px solid var(--border); color: var(--text2); }

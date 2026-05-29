@@ -93,10 +93,87 @@ function showMainApp() {
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('main-app').classList.add('active');
   document.getElementById('setting-email-display').textContent = currentUser.email;
-  if (currentUser.photoURL) {
-    document.getElementById('shop-avatar-img').innerHTML = `<img src="${currentUser.photoURL}" alt="avatar">`;
+  updateShopAvatar();
+  // Make avatar clickable
+  document.getElementById('shop-avatar-img').onclick = () => showShopAvatarOptions();
+  document.getElementById('shop-avatar-img').style.cursor = 'pointer';
+}
+
+function updateShopAvatar() {
+  const el = document.getElementById('shop-avatar-img');
+  const customAvatar = userSettings.shopAvatarUrl;
+  if (customAvatar) {
+    el.innerHTML = `<img src="${customAvatar}" alt="avatar">`;
+  } else if (currentUser && currentUser.photoURL) {
+    el.innerHTML = `<img src="${currentUser.photoURL}" alt="avatar">`;
+  } else {
+    el.innerHTML = `<i class="ti ti-building-store"></i>`;
   }
 }
+
+window.showShopAvatarOptions = () => {
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">更換店鋪頭貼</div>
+    <div class="picker-item" onclick="triggerAvatarUpload()">
+      <i class="ti ti-camera" style="color:var(--blue);font-size:20px;margin-right:8px"></i> 上傳自訂圖片
+    </div>
+    <div class="picker-item" onclick="useGoogleAvatar()">
+      <i class="ti ti-brand-google" style="color:var(--amber);font-size:20px;margin-right:8px"></i> 使用 Google 帳號頭貼
+    </div>
+    <div class="picker-item" onclick="removeAvatar()" style="color:var(--red)">
+      <i class="ti ti-trash" style="font-size:20px;margin-right:8px"></i> 移除頭貼
+    </div>
+    <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+  `);
+};
+
+window.triggerAvatarUpload = () => {
+  document.getElementById('avatar-file-input').click();
+};
+
+window.handleAvatarUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    compressImage(e.target.result, 300, 0.85, async (compressed) => {
+      try {
+        const imgRef = ref(storage, `users/${currentUser.uid}/avatar.jpg`);
+        await uploadString(imgRef, compressed, 'data_url');
+        const url = await getDownloadURL(imgRef);
+        userSettings.shopAvatarUrl = url;
+        await saveSettings();
+        updateShopAvatar();
+        forceCloseModal();
+        showToast('頭貼已更新！');
+      } catch(e) {
+        // Save locally if storage fails
+        userSettings.shopAvatarUrl = compressed;
+        await saveSettings();
+        updateShopAvatar();
+        forceCloseModal();
+        showToast('頭貼已更新！');
+      }
+    });
+  };
+  reader.readAsDataURL(file);
+};
+
+window.useGoogleAvatar = async () => {
+  userSettings.shopAvatarUrl = null;
+  await saveSettings();
+  updateShopAvatar();
+  forceCloseModal();
+  showToast('已改為 Google 頭貼');
+};
+
+window.removeAvatar = async () => {
+  userSettings.shopAvatarUrl = null;
+  await saveSettings();
+  updateShopAvatar();
+  forceCloseModal();
+  showToast('頭貼已移除');
+};
 
 window.logout = async () => {
   showConfirm('確定要登出嗎？', async () => {
@@ -577,7 +654,11 @@ window.saveProduct = async () => {
     }
     navigate('products');
   } catch (e) {
-    showToast('儲存失敗：' + e.message);
+    if (e.code === 'permission-denied') {
+      showToast('儲存失敗：請確認 Firebase 規則設定');
+    } else {
+      showToast('儲存失敗：' + e.message);
+    }
     console.error('Save product error:', e);
   }
 };
@@ -596,8 +677,10 @@ window.showProductDetail = (productId) => {
   const stockClass = p.stock === 0 ? 'red' : p.stock <= userSettings.lowStockThreshold ? 'amber' : 'green';
 
   document.getElementById('product-detail-content').innerHTML = `
-    <div class="product-detail-img" style="${p.imageUrl ? '' : 'background:var(--bg2);display:flex;align-items:center;justify-content:center;height:200px'}">
-      ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" style="width:100%;height:200px;object-fit:cover">` : `<i class="ti ti-photo" style="font-size:66px;color:var(--text5)"></i>`}
+    <div class="product-detail-img">
+      ${p.imageUrl
+        ? `<img src="${p.imageUrl}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;background:var(--bg2)">`
+        : `<i class="ti ti-photo" style="font-size:66px;color:var(--text5)"></i>`}
     </div>
     <div style="padding:14px">
       <div style="margin-bottom:12px">
@@ -1936,6 +2019,7 @@ function applySettings() {
   } else {
     document.body.classList.remove('light');
   }
+  updateShopAvatar();
 }
 
 window.toggleDarkMode = () => {
