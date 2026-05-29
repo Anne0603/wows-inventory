@@ -222,6 +222,10 @@ async function loadAllData() {
       expenseCategories = snap.data().expense || expenseCategories;
       suppliers = snap.data().suppliers || [];
     }
+    // Set default product categories for first-time users
+    if (productCategories.length === 0) {
+      productCategories = ['服飾', '配件', '生活用品', '美妝', '電子', '其他'];
+    }
   } catch (e) { console.log('Categories load error:', e); }
 
   updateHomePage();
@@ -1040,6 +1044,7 @@ window.confirmStockIn = async () => {
     }
 
     showToast(`入庫成功！單號：${orderNum}`);
+    updateHomePage();
     navigate('home');
   } catch (e) {
     console.error('StockIn error:', e);
@@ -1055,6 +1060,8 @@ function initStockOut() {
   document.getElementById('stock-out-customer-display').textContent = '請選擇客戶';
   document.getElementById('stock-out-customer-display').dataset.value = '';
   document.getElementById('stock-out-notes').value = '';
+  const btn = document.getElementById('confirm-stock-out-btn');
+  if (btn) { btn.disabled = false; btn.textContent = '確認出庫'; }
   renderStockOutItems();
   setDateDisplay('stock-out-date', new Date());
 }
@@ -1202,6 +1209,7 @@ window.confirmStockOut = async () => {
     if (customer) customer.totalAmount = (customer.totalAmount || 0) + totalAmount;
 
     showToast(`出庫成功！單號：${orderNum}`);
+    updateHomePage();
     navigate('home');
   } catch (e) {
     console.error('StockOut error:', e);
@@ -2451,11 +2459,13 @@ window.saveSupplierFromPicker = async () => {
 function showCustomerPickerModal(callback) {
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title">選擇客戶</div>
-    ${customers.map(c => `
-      <div class="picker-item" onclick="selectCustomerFromPicker('${c.id}','${c.name}')">
-        ${c.name}
-      </div>`).join('')}
-    <div class="picker-item" style="color:var(--blue)" onclick="closeModal();navigate('add-customer')">
+    ${customers.length === 0
+      ? '<div class="empty-state" style="padding:20px 0"><i class="ti ti-users" style="font-size:40px;display:block;margin-bottom:8px;color:var(--text4)"></i><p style="color:var(--text4)">還沒有客戶</p></div>'
+      : customers.map(c => `
+        <div class="picker-item" onclick="selectCustomerFromPicker('${c.id}','${c.name}')">
+          ${c.name}
+        </div>`).join('')}
+    <div class="picker-item" style="color:var(--blue)" onclick="forceCloseModal();navigate('add-customer')">
       <i class="ti ti-plus"></i> 新增客戶
     </div>`);
   window._customerCallback = callback;
