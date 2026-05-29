@@ -1341,12 +1341,18 @@ function renderCustomerList() {
   const container = document.getElementById('customer-list-container');
   if (!container) return;
 
+  // Switch between customer and supplier tab
+  if (currentContactTab === 'suppliers') {
+    renderSupplierList(search, container);
+    return;
+  }
+
   const filtered = customers.filter(c =>
     !search || c.name?.toLowerCase().includes(search)
   );
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state"><i class="ti ti-users"></i><p>沒有客戶</p></div>`;
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-users"></i><p>沒有客戶<br><span style="font-size:15px;color:var(--text4)">點右下角 + 新增</span></p></div>`;
     return;
   }
 
@@ -1354,7 +1360,9 @@ function renderCustomerList() {
   container.innerHTML = `<div class="form-card" style="margin:0">${filtered.map(c => {
     const monthOrders = stockOutOrders.filter(o => o.customerId === c.id && o.date?.startsWith(thisMonth));
     const monthAmount = monthOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-    const initials = c.name.substring(0, 2);
+    // Calculate from orders directly (don't rely on cached totalAmount)
+    const totalAmount = stockOutOrders.filter(o => o.customerId === c.id).reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    const initials = (c.name || '?').substring(0, 2);
     const color = getAvatarColor(c.name);
     return `
       <div class="customer-item" onclick="showCustomerDetail('${c.id}')">
@@ -1366,6 +1374,38 @@ function renderCustomerList() {
         <div style="text-align:right;margin-right:4px">
           <div style="color:var(--green);font-size:17px;font-weight:500">$${monthAmount.toLocaleString()}</div>
           <div style="color:var(--text4);font-size:14px">本月消費</div>
+        </div>
+        <i class="ti ti-chevron-right" style="color:var(--text5)"></i>
+      </div>`;
+  }).join('')}</div>`;
+}
+
+function renderSupplierList(search, container) {
+  const filtered = suppliers.filter(s =>
+    !search || s.name?.toLowerCase().includes(search)
+  );
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-building-store"></i><p>沒有供應商<br><span style="font-size:15px;color:var(--text4)">點右下角 + 新增</span></p></div>`;
+    return;
+  }
+
+  const thisMonth = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  container.innerHTML = `<div class="form-card" style="margin:0">${filtered.map(s => {
+    const monthOrders = stockInOrders.filter(o => o.supplierId === s.id && o.date?.startsWith(thisMonth));
+    const monthCost = monthOrders.reduce((sum, o) => sum + (o.totalCost || 0), 0);
+    const initials = (s.name || '?').substring(0, 2);
+    const color = getAvatarColor(s.name);
+    return `
+      <div class="customer-item" onclick="showSupplierDetail('${s.id}')">
+        <div class="customer-avatar-circle" style="background:${color}22;color:${color}">${initials}</div>
+        <div style="flex:1">
+          <div style="color:var(--text2);font-size:17px;font-weight:500">${s.name}</div>
+          <div style="color:var(--text4);font-size:15px;margin-top:2px">本月 ${monthOrders.length} 筆入庫</div>
+        </div>
+        <div style="text-align:right;margin-right:4px">
+          <div style="color:var(--blue);font-size:17px;font-weight:500">$${monthCost.toLocaleString()}</div>
+          <div style="color:var(--text4);font-size:14px">本月進貨</div>
         </div>
         <i class="ti ti-chevron-right" style="color:var(--text5)"></i>
       </div>`;
@@ -1455,7 +1495,8 @@ window.showCustomerDetail = (customerId) => {
   const thisMonth = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
   const monthOrders = stockOutOrders.filter(o => o.customerId === customerId && o.date?.startsWith(thisMonth));
   const monthAmount = monthOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
-  const totalAmount = c.totalAmount || stockOutOrders.filter(o => o.customerId === customerId).reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  // Always calculate from orders directly to stay accurate after deletes
+  const totalAmount = stockOutOrders.filter(o => o.customerId === customerId).reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const totalOrders = stockOutOrders.filter(o => o.customerId === customerId).length;
   const color = getAvatarColor(c.name);
   const initials = c.name.substring(0, 2);
@@ -2189,6 +2230,13 @@ window.deleteStockOutOrder = (orderId) => {
     }
     await deleteDoc(doc(db, 'users', currentUser.uid, 'stockOut', orderId));
     stockOutOrders = stockOutOrders.filter(x => x.id !== orderId);
+    // Recalculate customer total
+    if (o.customerId) {
+      const newTotal = stockOutOrders.filter(x => x.customerId === o.customerId).reduce((s, x) => s + (x.totalAmount||0), 0);
+      try { await updateDoc(doc(db, 'users', currentUser.uid, 'customers', o.customerId), { totalAmount: newTotal }); } catch(e) {}
+      const c = customers.find(x => x.id === o.customerId);
+      if (c) c.totalAmount = newTotal;
+    }
     navigate('report-stock-out');
     showToast('出庫單已刪除');
   });
