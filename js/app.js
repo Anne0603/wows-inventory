@@ -479,7 +479,11 @@ window.handleImageUpload = (event) => {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
-    compressImage(e.target.result, 800, 0.75, (compressed) => {
+    const original = e.target.result;
+    // Save original for download later
+    document.getElementById('product-img-upload').dataset.originalData = original;
+    // Compress for display
+    compressImage(original, 800, 0.75, (compressed) => {
       document.getElementById('product-img-upload').dataset.imageData = compressed;
       document.getElementById('product-img-upload').style.display = 'none';
       document.getElementById('product-img-preview').src = compressed;
@@ -534,13 +538,22 @@ window.saveProduct = async () => {
     productData.createdAt = Date.now();
   }
 
-  // Handle image
+  // Handle image - upload both compressed (for display) and original (for download)
   const imageData = document.getElementById('product-img-upload').dataset.imageData;
+  const originalData = document.getElementById('product-img-upload').dataset.originalData;
   if (imageData) {
     try {
-      const imgRef = ref(storage, `users/${currentUser.uid}/products/${Date.now()}.jpg`);
+      const timestamp = Date.now();
+      // Upload compressed image for display
+      const imgRef = ref(storage, `users/${currentUser.uid}/products/${timestamp}.jpg`);
       await uploadString(imgRef, imageData, 'data_url');
       productData.imageUrl = await getDownloadURL(imgRef);
+      // Upload original image for download
+      if (originalData) {
+        const origRef = ref(storage, `users/${currentUser.uid}/products_original/${timestamp}_original.jpg`);
+        await uploadString(origRef, originalData, 'data_url');
+        productData.imageOriginalUrl = await getDownloadURL(origRef);
+      }
     } catch (e) {
       console.log('Image upload error:', e);
     }
@@ -633,6 +646,15 @@ window.showProductDetail = (productId) => {
             <span style="color:var(--blue);font-size:11px">查看列印</span>
           </div>
         </div>
+        ${p.imageOriginalUrl ? `
+        <div class="form-row" style="border-bottom:none;margin-top:-1px;border-top:0.5px solid var(--border)" onclick="downloadOriginalImage('${p.imageOriginalUrl}','${p.name}')">
+          <span class="form-label">原始圖片</span>
+          <span class="form-input" style="color:var(--text4)">上架用高畫質原圖</span>
+          <div style="display:flex;align-items:center;gap:4px;background:#1a2818;border-radius:6px;padding:4px 8px">
+            <i class="ti ti-download" style="color:var(--green);font-size:13px"></i>
+            <span style="color:var(--green);font-size:11px">下載</span>
+          </div>
+        </div>` : ''}
       </div>
 
       <div class="product-detail-actions">
@@ -734,6 +756,15 @@ function drawBarcode(canvasId, barcode) {
     }
   }
 }
+
+window.downloadOriginalImage = (url, name) => {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name}_原圖.jpg`;
+  a.target = '_blank';
+  a.click();
+  showToast('原圖下載中...');
+};
 
 window.saveBarcodeImage = () => {
   const canvas = document.getElementById('barcode-canvas');
