@@ -926,19 +926,30 @@ function drawBarcode(canvasId, barcode, productName) {
 }
 
 window.downloadOriginalImage = (url, name) => {
-  // Open in new tab - user can long press to save on mobile
   const w = window.open('', '_blank');
   if (w) {
-    w.document.write(`
-      <html><head><title>${name} 原圖</title>
-      <meta name="viewport" content="width=device-width">
-      <style>body{margin:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
-      img{max-width:100%;max-height:90vh;object-fit:contain}
-      p{color:#fff;font-size:14px;margin:12px;text-align:center;font-family:sans-serif}</style></head>
-      <body><img src="${url}"><p>長按圖片即可儲存到相簿</p></body></html>`);
+    w.document.write(`<!DOCTYPE html>
+<html><head>
+  <title>${name} 原圖</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#111;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,sans-serif;padding:16px}
+    img{max-width:100%;max-height:75vh;object-fit:contain;border-radius:12px;display:block}
+    .name{color:#fff;font-size:18px;font-weight:600;margin:14px 0 4px;text-align:center}
+    .hint{color:#aaa;font-size:13px;margin-bottom:16px;text-align:center}
+    .close-btn{background:#fff;color:#111;border:none;border-radius:10px;padding:14px;width:100%;max-width:320px;font-size:16px;font-weight:600;cursor:pointer}
+  </style>
+</head>
+<body>
+  <img src="${url}">
+  <div class="name">${name}</div>
+  <div class="hint">長按圖片儲存到相簿</div>
+  <button class="close-btn" onclick="window.close()">✕ 關閉頁面</button>
+</body></html>`);
     w.document.close();
   } else {
-    showToast('請長按圖片儲存');
+    showToast('請允許彈出視窗後再試');
   }
 };
 
