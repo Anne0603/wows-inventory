@@ -33,6 +33,8 @@ let productCategories = [];
 let expenseCategories = ['包材', '廣告費', '電話費', '印刷費', '雜支'];
 let suppliers = [];
 let currentPage = 'home';
+let _newProductImageData = null;
+let _newProductOriginalData = null;
 let currentContactTab = 'customers'; // 'customers' or 'suppliers'
 let editingProductId = null;
 let editingCustomerId = null;
@@ -556,6 +558,8 @@ window.setSortBy = (sort) => {
 // ==================== ADD/EDIT PRODUCT ====================
 function initAddProduct() {
   editingProductId = null;
+  _newProductImageData = null;
+  _newProductOriginalData = null;
   document.getElementById('add-product-title').textContent = '新增商品';
   document.getElementById('product-name').value = '';
   document.getElementById('product-category-display').textContent = '請選擇類別';
@@ -586,11 +590,10 @@ window.handleImageUpload = (event) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     const original = e.target.result;
-    document.getElementById('product-img-upload').dataset.originalData = original;
+    _newProductOriginalData = original; // store in global var
     compressImage(original, 800, 0.75, (compressed) => {
-      document.getElementById('product-img-upload').dataset.imageData = compressed;
+      _newProductImageData = compressed; // store in global var
       document.getElementById('product-img-upload').style.display = 'none';
-      // Show wrapper
       const wrapper = document.getElementById('product-img-preview-wrapper');
       if (wrapper) wrapper.style.display = 'block';
       const preview = document.getElementById('product-img-preview');
@@ -650,13 +653,11 @@ window.saveProduct = async () => {
 
   showToast('儲存中...');
 
-  // Save images as base64 directly in Firestore (avoids CORS issues)
-  const imageData = document.getElementById('product-img-upload').dataset.imageData;
-  const originalData = document.getElementById('product-img-upload').dataset.originalData;
-  if (imageData) {
-    productData.imageUrl = imageData; // compressed base64
-    if (originalData) {
-      productData.imageOriginalUrl = originalData; // original base64
+  // Save images using global vars (more reliable than dataset on hidden elements)
+  if (_newProductImageData) {
+    productData.imageUrl = _newProductImageData;
+    if (_newProductOriginalData) {
+      productData.imageOriginalUrl = _newProductOriginalData;
     }
   }
 
@@ -665,6 +666,7 @@ window.saveProduct = async () => {
       await updateDoc(doc(db, 'users', currentUser.uid, 'products', editingProductId), productData);
       const idx = products.findIndex(p => p.id === editingProductId);
       if (idx > -1) products[idx] = { id: editingProductId, ...products[idx], ...productData };
+      _newProductImageData = null; _newProductOriginalData = null;
       showToast('商品已更新！');
     } else {
       const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'products'), productData);
@@ -673,6 +675,7 @@ window.saveProduct = async () => {
         productCategories.push(category);
         await saveCategories();
       }
+      _newProductImageData = null; _newProductOriginalData = null;
       showToast('商品已新增！');
     }
     editingProductId = null;
@@ -829,8 +832,8 @@ window.editProduct = (productId) => {
     if (wrapper) wrapper.style.display = 'none';
     document.getElementById('product-img-upload').style.display = 'flex';
   }
-  document.getElementById('product-img-upload').dataset.imageData = '';
-  document.getElementById('product-img-upload').dataset.originalData = '';
+  _newProductImageData = null;
+  _newProductOriginalData = null;
 
   navigate('add-product');
 };
