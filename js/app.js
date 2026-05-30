@@ -586,23 +586,28 @@ window.triggerImageUpload = () => {
 
 window.handleImageUpload = (event) => {
   const file = event.target.files[0];
-  if (!file) return;
+  if (!file) { showToast('沒有選到檔案'); return; }
+  showToast('圖片處理中...');
   const reader = new FileReader();
   reader.onload = (e) => {
     const original = e.target.result;
-    _newProductOriginalData = original; // store in global var
+    _newProductOriginalData = original;
     compressImage(original, 800, 0.75, (compressed) => {
-      _newProductImageData = compressed; // store in global var
+      _newProductImageData = compressed;
+      showToast('圖片已載入！');
       document.getElementById('product-img-upload').style.display = 'none';
       const wrapper = document.getElementById('product-img-preview-wrapper');
-      if (wrapper) wrapper.style.display = 'block';
+      if (wrapper) { wrapper.style.display = 'block'; }
       const preview = document.getElementById('product-img-preview');
-      preview.src = compressed;
-      preview.style.display = 'block';
-      preview.style.cursor = 'pointer';
-      preview.onclick = () => document.getElementById('product-img-input').click();
+      if (preview) {
+        preview.src = compressed;
+        preview.style.display = 'block';
+        preview.style.cursor = 'pointer';
+        preview.onclick = () => document.getElementById('product-img-input').click();
+      }
     });
   };
+  reader.onerror = () => showToast('圖片讀取失敗');
   reader.readAsDataURL(file);
 };
 
@@ -653,11 +658,21 @@ window.saveProduct = async () => {
 
   showToast('儲存中...');
 
-  // Save images using global vars (more reliable than dataset on hidden elements)
+  // Save images using global vars
+  console.log('Image data exists:', !!_newProductImageData, 'length:', _newProductImageData?.length);
   if (_newProductImageData) {
     productData.imageUrl = _newProductImageData;
     if (_newProductOriginalData) {
       productData.imageOriginalUrl = _newProductOriginalData;
+    }
+  } else if (editingProductId) {
+    // Keep existing image if no new one uploaded
+    const existingProduct = products.find(p => p.id === editingProductId);
+    if (existingProduct?.imageUrl) {
+      productData.imageUrl = existingProduct.imageUrl;
+    }
+    if (existingProduct?.imageOriginalUrl) {
+      productData.imageOriginalUrl = existingProduct.imageOriginalUrl;
     }
   }
 
