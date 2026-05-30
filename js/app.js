@@ -586,28 +586,25 @@ window.triggerImageUpload = () => {
 
 window.handleImageUpload = (event) => {
   const file = event.target.files[0];
-  if (!file) { showToast('沒有選到檔案'); return; }
-  showToast('圖片處理中...');
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
     const original = e.target.result;
     _newProductOriginalData = original;
     compressImage(original, 800, 0.75, (compressed) => {
       _newProductImageData = compressed;
-      showToast('圖片已載入！');
+      // Hide upload button, show preview
       document.getElementById('product-img-upload').style.display = 'none';
       const wrapper = document.getElementById('product-img-preview-wrapper');
-      if (wrapper) { wrapper.style.display = 'block'; }
+      if (wrapper) wrapper.style.display = 'block';
       const preview = document.getElementById('product-img-preview');
       if (preview) {
         preview.src = compressed;
         preview.style.display = 'block';
-        preview.style.cursor = 'pointer';
-        preview.onclick = () => document.getElementById('product-img-input').click();
       }
+      showToast('照片已更新！');
     });
   };
-  reader.onerror = () => showToast('圖片讀取失敗');
   reader.readAsDataURL(file);
 };
 
