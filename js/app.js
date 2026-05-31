@@ -197,25 +197,42 @@ window.handleGoogleLogin = async () => {
   const btn = document.getElementById('google-login-btn');
   if (btn) { btn.textContent = '登入中...'; btn.disabled = true; }
 
-  // Try popup first (works in Safari browser)
   try {
-    await signInWithPopup(auth, googleProvider);
+    // Try popup
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('Popup success:', result.user.email);
     return;
-  } catch (e) {
-    console.log('Popup failed:', e.code);
-  }
+  } catch (popupErr) {
+    console.log('Popup error code:', popupErr.code);
 
-  // Try redirect (works in PWA/WebView)
-  try {
-    await signInWithRedirect(auth, googleProvider);
-    return;
-  } catch (e) {
-    console.log('Redirect failed:', e.code);
-  }
+    // If popup blocked or not supported, use redirect
+    const needsRedirect = [
+      'auth/popup-blocked',
+      'auth/popup-closed-by-user',
+      'auth/cancelled-popup-request',
+      'auth/operation-not-supported-in-this-environment',
+      'auth/web-storage-unsupported',
+      'auth/unauthorized-domain'
+    ].includes(popupErr.code);
 
-  // Both failed
-  if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
-  alert('登入失敗，請確認網路連線後重試');
+    if (needsRedirect || !popupErr.code) {
+      try {
+        console.log('Trying redirect...');
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      } catch (redirectErr) {
+        console.log('Redirect error:', redirectErr.code, redirectErr.message);
+        if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
+        alert('錯誤：' + redirectErr.code + ' - ' + redirectErr.message);
+        return;
+      }
+    }
+
+    if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
+    if (popupErr.code !== 'auth/popup-closed-by-user') {
+      alert('登入錯誤：' + popupErr.code);
+    }
+  }
 };
 
 window.logout = async () => {
