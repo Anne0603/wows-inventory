@@ -704,3 +704,7 @@ input[type=number] { -moz-appearance: textfield; }
 #page-home .menu-label {
   font-size: 15px;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -101,9 +101,27 @@ function showMainApp() {
   document.getElementById('main-app').classList.add('active');
   document.getElementById('setting-email-display').textContent = currentUser.email;
   updateShopAvatar();
-  // Make avatar clickable
   document.getElementById('shop-avatar-img').onclick = () => showShopAvatarOptions();
   document.getElementById('shop-avatar-img').style.cursor = 'pointer';
+  // Show loading screen until data is ready
+  showLoadingScreen();
+}
+
+function showLoadingScreen() {
+  const el = document.getElementById('loading-screen');
+  if (el) el.style.display = 'flex';
+}
+
+function hideLoadingScreen() {
+  const el = document.getElementById('loading-screen');
+  if (el) {
+    el.style.opacity = '1';
+    el.style.transition = 'opacity 0.3s';
+    setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(() => { el.style.display = 'none'; }, 300);
+    }, 200);
+  }
 }
 
 function updateShopAvatar() {
@@ -240,6 +258,7 @@ async function loadAllData() {
   renderCustomerList();
   renderExpenseList();
   checkBackupReminder();
+  hideLoadingScreen();
 }
 
 async function saveSettings() {
