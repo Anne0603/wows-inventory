@@ -52,18 +52,7 @@ let currentProductDetailId = null;
 let currentCustomerDetailId = null;
 
 // ==================== INIT ====================
-document.addEventListener('DOMContentLoaded', () => {
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUser = user;
-      showMainApp();
-      loadAllData();
-    } else {
-      showLoginScreen();
-    }
-  });
-
-  // Google Login
+document.addEventListener('DOMContentLoaded', async () => {
   // Handle redirect result first (when returning from Google login)
   try {
     const result = await getRedirectResult(auth);
@@ -74,8 +63,15 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Redirect result error:', e.code);
   }
 
-  // Login button uses global function defined below
-  ;
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUser = user;
+      showMainApp();
+      loadAllData();
+    } else {
+      showLoginScreen();
+    }
+  });
 
   // Settings button
   document.getElementById('settings-btn').addEventListener('click', () => navigate('settings'));
