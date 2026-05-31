@@ -60,6 +60,21 @@
         </div>
       </div>
 
+      <!-- Name Setup Screen (first time collaborator login) -->
+      <div id="name-setup-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px">
+        <div style="width:80px;height:80px;background:var(--bg2);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;border:0.5px solid var(--border)">
+          <i class="ti ti-user" style="font-size:40px;color:var(--blue)"></i>
+        </div>
+        <div style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px">你好！</div>
+        <div style="font-size:15px;color:var(--text4);margin-bottom:32px;text-align:center;line-height:1.6">請輸入你的姓名<br>這將顯示在入庫和出庫單據上</div>
+        <div class="form-card" style="width:100%;margin-bottom:16px">
+          <div class="form-row" style="border-bottom:none">
+            <input class="form-input" type="text" id="user-display-name" placeholder="輸入姓名（例：王小明）" style="font-size:18px;text-align:center">
+          </div>
+        </div>
+        <button class="submit-btn" onclick="saveUserDisplayName()">確認</button>
+      </div>
+
       <!-- Loading Screen -->
       <div id="loading-screen" style="position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px">
         <div style="width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite"></div>
@@ -223,7 +238,7 @@
             <!-- Product list -->
             <div id="product-list-container"></div>
           </div>
-          <button class="fab" onclick="editingProductId=null;navigate('add-product')"><i class="ti ti-plus"></i></button>
+          <button class="fab owner-only" id="product-fab" onclick="editingProductId=null;navigate('add-product')"><i class="ti ti-plus"></i></button>
         </div>
 
         <!-- Add Product Page -->
@@ -456,7 +471,7 @@
             </div>
             <div id="customer-list-container"></div>
           </div>
-          <button class="fab" id="contact-fab" onclick="editingCustomerId=null;navigate('add-customer')"><i class="ti ti-plus"></i></button>
+          <button class="fab" id="contact-fab" class="owner-only" onclick="editingCustomerId=null;navigate('add-customer')"><i class="ti ti-plus"></i></button>
         </div>
 
         <!-- Add Customer Page -->

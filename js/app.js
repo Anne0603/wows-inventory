@@ -35,6 +35,7 @@ let suppliers = [];
 let currentPage = 'home';
 let _newProductImageData = null;
 let _newProductOriginalData = null;
+let userDisplayName = null; // user's display name for order records
 let currentContactTab = 'customers'; // 'customers' or 'suppliers'
 let editingProductId = null;
 let editingCustomerId = null;
@@ -268,6 +269,9 @@ async function loadAllData() {
   // Load authorized accounts list
   await loadAuthorizedAccounts();
   updateAuthorizedCount();
+
+  // Check display name for collaborators
+  await checkUserDisplayName();
 
   updateHomePage();
   renderProductList();
@@ -833,13 +837,13 @@ window.showProductDetail = (productId) => {
       </div>
 
       <div class="product-detail-actions">
-        <button class="action-btn edit" onclick="editProduct('${p.id}')">編輯</button>
+        ${isOwner() ? `<button class="action-btn edit" onclick="editProduct('${p.id}')">編輯</button>` : ''}
         <button class="action-btn in" onclick="quickStockIn('${p.id}')">快速入庫</button>
         <button class="action-btn out" onclick="quickStockOut('${p.id}')">快速出庫</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr;margin-top:8px">
+      ${isOwner() ? `<div style="display:grid;grid-template-columns:1fr;margin-top:8px">
         <button class="submit-btn red" onclick="deleteProduct('${p.id}')">刪除商品</button>
-      </div>
+      </div>` : ''}
       <div style="height:20px"></div>
     </div>`;
 
@@ -1235,7 +1239,9 @@ window.confirmStockIn = async () => {
     supplierId: stockInSupplierId,
     supplierName: document.getElementById('stock-in-supplier-display').textContent,
     items: orderItems,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    createdBy: userDisplayName || currentUser.email,
+    createdByEmail: currentUser.email
   };
 
   try {
@@ -1418,7 +1424,9 @@ window.confirmStockOut = async () => {
     customerId: stockOutCustomerId,
     customerName: customer?.name || '',
     items: stockOutItems.map(i => ({ ...i })),
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    createdBy: userDisplayName || currentUser.email,
+    createdByEmail: currentUser.email
   };
 
   try {
@@ -2319,6 +2327,7 @@ window.showStockOutDetail = (orderId) => {
       <div class="form-card">
         <div class="form-row"><span class="form-label">出庫客戶</span><span class="form-input">${o.customerName}</span></div>
         <div class="form-row"><span class="form-label">出庫日期</span><span class="form-input">${o.date}</span></div>
+        ${o.createdBy ? `<div class="form-row"><span class="form-label">建立者</span><span class="form-input" style="color:var(--blue)">${o.createdBy}</span></div>` : ''}
         ${o.notes ? `<div class="form-row"><span class="form-label">備註</span><span class="form-input">${o.notes}</span></div>` : ''}
       </div>
       <div class="form-card">
@@ -2408,6 +2417,7 @@ window.showStockInDetail = (orderId) => {
       <div class="form-card">
         <div class="form-row"><span class="form-label">入庫日期</span><span class="form-input">${o.date}</span></div>
         <div class="form-row"><span class="form-label">供應商</span><span class="form-input">${o.supplierName || '無'}</span></div>
+        ${o.createdBy ? `<div class="form-row"><span class="form-label">建立者</span><span class="form-input" style="color:var(--blue)">${o.createdBy}</span></div>` : ''}
         ${o.notes ? `<div class="form-row"><span class="form-label">備註</span><span class="form-input">${o.notes}</span></div>` : ''}
       </div>
       <div class="form-card">
@@ -3881,6 +3891,49 @@ async function checkAuthorization() {
   _ownerUid = uid;
   return uid;
 }
+
+async function checkUserDisplayName() {
+  // Only needed for collaborators
+  if (isOwner()) {
+    userDisplayName = currentUser.displayName || currentUser.email.split('@')[0];
+    return;
+  }
+  // Check if collaborator has set a display name
+  try {
+    const snap = await getDoc(doc(db, 'userProfiles', currentUser.uid));
+    if (snap.exists() && snap.data().displayName) {
+      userDisplayName = snap.data().displayName;
+    } else {
+      // First time - show name setup screen
+      showNameSetupScreen();
+    }
+  } catch(e) {
+    userDisplayName = currentUser.displayName || currentUser.email.split('@')[0];
+  }
+}
+
+function showNameSetupScreen() {
+  const el = document.getElementById('name-setup-screen');
+  if (el) el.style.display = 'flex';
+}
+
+window.saveUserDisplayName = async () => {
+  const name = document.getElementById('user-display-name')?.value?.trim();
+  if (!name) { showToast('請輸入姓名'); return; }
+  try {
+    await setDoc(doc(db, 'userProfiles', currentUser.uid), {
+      displayName: name,
+      email: currentUser.email,
+      updatedAt: Date.now()
+    });
+    userDisplayName = name;
+    const el = document.getElementById('name-setup-screen');
+    if (el) el.style.display = 'none';
+    showToast(`歡迎，${name}！`);
+  } catch(e) {
+    showToast('儲存失敗：' + e.message);
+  }
+};
 
 function getDataUid() {
   return _ownerUid || currentUser?.uid;
