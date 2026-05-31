@@ -839,6 +839,29 @@
           </div>
         </div>
 
+        <!-- Authorized Accounts Page -->
+        <div class="page" id="page-authorized-accounts">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('settings')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">授權帳號管理</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content">
+            <div style="color:var(--text4);font-size:15px;margin-bottom:16px;line-height:1.7">
+              輸入對方的 Google 帳號 email，對方用 Safari 開啟網址並登入後，即可看到你的資料。
+            </div>
+            <div class="form-card" style="margin-bottom:16px">
+              <div class="form-row" style="border-bottom:none">
+                <input class="form-input" type="email" id="new-auth-email"
+                  placeholder="輸入 Google email" style="font-size:16px">
+                <button onclick="addAuthorizedAccount()" style="background:var(--blue);color:white;border:none;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer;flex-shrink:0;font-weight:500">新增</button>
+              </div>
+            </div>
+            <div class="section-label" id="auth-list-label">已授權帳號</div>
+            <div id="auth-accounts-list"></div>
+          </div>
+        </div>
+
         <!-- Settings Page -->
         <div class="page" id="page-settings">
           <div class="subpage-topbar">
@@ -985,7 +1008,7 @@
                 </div>
                 <button class="text-btn" style="color:#e05545" onclick="logout()">登出</button>
               </div>
-              <div class="form-row" style="border-bottom:none" onclick="showAuthorizedAccounts()">
+              <div class="form-row" style="border-bottom:none" onclick="navigate('authorized-accounts')">
                 <div class="setting-icon si-purple"><i class="ti ti-users"></i></div>
                 <div style="flex:1;">
                   <div style="color:#c8d0e8;font-size:16px;">授權帳號管理</div>

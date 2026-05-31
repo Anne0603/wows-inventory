@@ -315,6 +315,9 @@ window.navigate = (page) => {
   if (page === 'report-platform') renderPlatformReport();
   if (page === 'report-expenses') renderExpenseReport();
   if (page === 'settings') renderSettings();
+  if (page === 'authorized-accounts') {
+    loadAuthorizedAccounts().then(() => renderAuthAccountsList());
+  }
   if (page === 'add-supplier') {
     if (!editingSupplierId) {
       document.getElementById('add-supplier-title').textContent = '新增供應商';
@@ -3874,69 +3877,49 @@ function getDataUid() {
   return _ownerUid || currentUser?.uid;
 }
 
-window.showAuthorizedAccounts = async () => {
-  await loadAuthorizedAccounts();
-  renderAuthorizedAccountsModal();
-};
-
 async function loadAuthorizedAccounts() {
   try {
     const uid = getDataUid();
-    console.log('loadAuthorizedAccounts for uid:', uid);
     const snap = await getDoc(doc(db, 'authorizedAccess', uid));
-    console.log('snap exists:', snap.exists(), 'data:', snap.data());
     if (snap.exists()) {
       authorizedAccounts = snap.data().authorizedEmails || [];
     } else {
       authorizedAccounts = [];
     }
-    console.log('authorizedAccounts loaded:', authorizedAccounts);
   } catch(e) {
-    console.error('loadAuthorizedAccounts error:', e);
     authorizedAccounts = [];
   }
 }
 
-function renderAuthorizedAccountsModal() {
-  const isOwner = _ownerUid === currentUser?.uid;
-  showModal(`<div class="modal-handle"></div>
-    <div class="modal-title">授權帳號管理</div>
-    ${!isOwner ? `<div style="background:#1a2818;border:0.5px solid #2a5838;border-radius:10px;padding:12px;margin-bottom:16px;color:var(--green);font-size:14px;text-align:center">
-      你正在以協作者身份存取此帳號的資料
-    </div>` : ''}
-    <p style="color:var(--text4);font-size:14px;margin-bottom:16px;line-height:1.6">
-      輸入對方的 Google 帳號 email，對方登入後即可看到你的資料。
-    </p>
-    <div class="form-card" style="margin-bottom:16px">
-      <div class="form-row" style="border-bottom:none">
-        <input class="form-input" type="email" id="new-auth-email"
-          placeholder="輸入 Google email" style="font-size:16px">
-        <button onclick="addAuthorizedAccount()" style="background:var(--blue);color:white;border:none;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;flex-shrink:0">新增</button>
-      </div>
-    </div>
-    ${authorizedAccounts.length > 0 ? `
-      <div class="section-label">已授權帳號（${authorizedAccounts.length}個）</div>
-      <div class="form-card" style="margin:0 0 16px">
-        ${authorizedAccounts.map((email, idx) => `
-          <div class="form-row" style="${idx === authorizedAccounts.length-1 ? 'border-bottom:none' : ''}">
-            <div style="flex:1">
-              <div style="color:var(--text2);font-size:15px">${email}</div>
-            </div>
-            <button onclick="removeAuthorizedAccount('${email}')"
-              style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px">
-              <i class="ti ti-trash"></i>
-            </button>
-          </div>`).join('')}
-      </div>` : `
-      <div class="empty-state" style="padding:20px 0">
-        <i class="ti ti-users" style="font-size:36px;display:block;margin-bottom:8px;color:var(--text4)"></i>
-        <p style="color:var(--text4)">還沒有授權任何帳號</p>
-      </div>`}
-    <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">關閉</button>`);
+function renderAuthAccountsList() {
+  const container = document.getElementById('auth-accounts-list');
+  const label = document.getElementById('auth-list-label');
+  if (!container) return;
+
+  if (label) label.textContent = `已授權帳號（${authorizedAccounts.length}個）`;
+
+  if (authorizedAccounts.length === 0) {
+    container.innerHTML = `<div class="empty-state"><i class="ti ti-users"></i><p>還沒有授權任何帳號</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="form-card" style="margin:0">
+    ${authorizedAccounts.map((email, idx) => `
+      <div class="form-row" style="${idx === authorizedAccounts.length-1 ? 'border-bottom:none' : ''}">
+        <div style="flex:1">
+          <div style="color:var(--text2);font-size:16px">${email}</div>
+        </div>
+        <button onclick="removeAuthorizedAccount('${email}')"
+          style="background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;padding:4px 8px">
+          <i class="ti ti-trash"></i>
+        </button>
+      </div>`).join('')}
+  </div>`;
 }
 
 window.addAuthorizedAccount = async () => {
-  const email = document.getElementById('new-auth-email')?.value?.trim().toLowerCase();
+  const input = document.getElementById('new-auth-email');
+  const email = input?.value?.trim().toLowerCase();
   if (!email || !email.includes('@')) { showToast('請輸入有效的 email'); return; }
   if (email === currentUser.email.toLowerCase()) { showToast('不能授權自己的帳號'); return; }
   if (authorizedAccounts.includes(email)) { showToast('此帳號已授權'); return; }
@@ -3944,8 +3927,9 @@ window.addAuthorizedAccount = async () => {
   authorizedAccounts.push(email);
   await saveAuthorizedAccounts();
   updateAuthorizedCount();
-  renderAuthorizedAccountsModal();
-  showToast(`已授權 ${email}`);
+  if (input) input.value = '';
+  renderAuthAccountsList();
+  showToast(`已授權 ${email}！`);
 };
 
 window.removeAuthorizedAccount = async (email) => {
@@ -3953,7 +3937,7 @@ window.removeAuthorizedAccount = async (email) => {
     authorizedAccounts = authorizedAccounts.filter(e => e !== email);
     await saveAuthorizedAccounts();
     updateAuthorizedCount();
-    renderAuthorizedAccountsModal();
+    renderAuthAccountsList();
     showToast('已移除授權');
   });
 };
