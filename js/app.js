@@ -3864,43 +3864,30 @@ async function checkAuthorization() {
   const uid = currentUser.uid;
   const email = currentUser.email.toLowerCase();
 
-  // Check if authorized by someone else
   try {
     const authSnap = await getDocs(collection(db, 'authorizedAccess'));
+
+    // ALWAYS check authorized access first
+    // Even if collaborator accidentally created own empty data
     for (const d of authSnap.docs) {
-      if (d.id === uid) continue; // skip own record
-      const data = d.data();
-      const emails = (data.authorizedEmails || []).map(e => e.toLowerCase());
+      if (d.id === uid) continue;
+      const emails = (d.data().authorizedEmails || []).map(e => e.toLowerCase());
       if (emails.includes(email)) {
         _ownerUid = d.id;
-        showToast(`以協作者身份登入`);
+        showToast('以協作者身份登入');
         return d.id;
       }
     }
-  } catch(e) {
-    console.log('Auth check error:', e);
-  }
 
-  // Check if this user has their own data (is an owner)
-  try {
+    // Not in any authorized list - check if has own real data
     const ownSnap = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
-    if (ownSnap.exists()) {
+    if (ownSnap.exists() && ownSnap.data().companyName) {
+      // Has real settings data = legitimate owner
       _ownerUid = uid;
       return uid;
     }
-  } catch(e) {}
 
-  // New user with no data and no authorization - show error
-  // Check if this looks like a brand new unauthorized account
-  const authSnap2 = await getDocs(collection(db, 'authorizedAccess'));
-  let isAuthorized = false;
-  for (const d of authSnap2.docs) {
-    const emails = (d.data().authorizedEmails || []).map(e => e.toLowerCase());
-    if (emails.includes(email)) { isAuthorized = true; break; }
-  }
-
-  if (!isAuthorized) {
-    // Unauthorized - sign out and show message
+    // No authorization and no real data = unauthorized
     await signOut(auth);
     showLoginScreen();
     setTimeout(() => {
@@ -3913,10 +3900,13 @@ async function checkAuthorization() {
         <button class="submit-btn" onclick="forceCloseModal()">確認</button>`);
     }, 300);
     return null;
-  }
 
-  _ownerUid = uid;
-  return uid;
+  } catch(e) {
+    console.log('Auth check error:', e);
+    // On error, check own data as fallback
+    _ownerUid = uid;
+    return uid;
+  }
 }
 
 async function checkUserDisplayName() {
