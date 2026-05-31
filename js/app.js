@@ -221,6 +221,7 @@ async function loadAllData() {
 
   // Check if this user is authorized to access someone else's data
   const uid = await checkAuthorization();
+  if (!uid) return; // unauthorized user, already signed out
 
   // Load everything simultaneously with Promise.all
   const [
@@ -3863,31 +3864,57 @@ async function checkAuthorization() {
   const uid = currentUser.uid;
   const email = currentUser.email.toLowerCase();
 
-  console.log('checkAuthorization for:', email, uid);
-
-  // Check simultaneously: own data + authorized access
-  const [ownSnap, authSnap] = await Promise.allSettled([
-    getDoc(doc(db, 'users', uid, 'settings', 'main')),
-    getDocs(collection(db, 'authorizedAccess'))
-  ]);
-
-  console.log('authSnap status:', authSnap.status);
-  if (authSnap.status === 'fulfilled') {
-    console.log('authorizedAccess docs:', authSnap.value.docs.length);
-    for (const d of authSnap.value.docs) {
+  // Check if authorized by someone else
+  try {
+    const authSnap = await getDocs(collection(db, 'authorizedAccess'));
+    for (const d of authSnap.docs) {
+      if (d.id === uid) continue; // skip own record
       const data = d.data();
-      console.log('checking doc:', d.id, 'emails:', data.authorizedEmails);
       const emails = (data.authorizedEmails || []).map(e => e.toLowerCase());
-      if (emails.includes(email) && d.id !== uid) {
+      if (emails.includes(email)) {
         _ownerUid = d.id;
-        console.log('✅ Authorized! Using owner UID:', d.id);
-        showToast('以協作者身份登入');
+        showToast(`以協作者身份登入`);
         return d.id;
       }
     }
+  } catch(e) {
+    console.log('Auth check error:', e);
   }
 
-  console.log('Using own UID:', uid);
+  // Check if this user has their own data (is an owner)
+  try {
+    const ownSnap = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
+    if (ownSnap.exists()) {
+      _ownerUid = uid;
+      return uid;
+    }
+  } catch(e) {}
+
+  // New user with no data and no authorization - show error
+  // Check if this looks like a brand new unauthorized account
+  const authSnap2 = await getDocs(collection(db, 'authorizedAccess'));
+  let isAuthorized = false;
+  for (const d of authSnap2.docs) {
+    const emails = (d.data().authorizedEmails || []).map(e => e.toLowerCase());
+    if (emails.includes(email)) { isAuthorized = true; break; }
+  }
+
+  if (!isAuthorized) {
+    // Unauthorized - sign out and show message
+    await signOut(auth);
+    showLoginScreen();
+    setTimeout(() => {
+      showModal(`<div class="modal-handle"></div>
+        <div class="modal-title" style="color:var(--red)">未獲授權</div>
+        <p style="color:var(--text2);font-size:16px;text-align:center;margin-bottom:20px;line-height:1.7">
+          此 Google 帳號尚未獲得授權<br>
+          <span style="color:var(--text4);font-size:14px">請聯絡管理員將你的 email 加入授權名單</span>
+        </p>
+        <button class="submit-btn" onclick="forceCloseModal()">確認</button>`);
+    }, 300);
+    return null;
+  }
+
   _ownerUid = uid;
   return uid;
 }
