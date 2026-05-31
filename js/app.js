@@ -196,46 +196,11 @@ window.removeAvatar = async () => {
 window.handleGoogleLogin = async () => {
   const btn = document.getElementById('google-login-btn');
   if (btn) { btn.textContent = '登入中...'; btn.disabled = true; }
-
   try {
-    // Try popup
-    const result = await signInWithPopup(auth, googleProvider);
-    console.log('Popup success:', result.user.email);
-    return;
-  } catch (popupErr) {
-    console.log('Popup error code:', popupErr.code);
-
-    // If popup blocked or not supported, use redirect
-    const needsRedirect = [
-      'auth/popup-blocked',
-      'auth/popup-closed-by-user',
-      'auth/cancelled-popup-request',
-      'auth/operation-not-supported-in-this-environment',
-      'auth/web-storage-unsupported',
-      'auth/unauthorized-domain'
-    ].includes(popupErr.code);
-
-    if (needsRedirect || !popupErr.code) {
-      try {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      } catch (redirectErr) {
-        if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
-        if (redirectErr.message?.includes('disallowed_useragent')) {
-          alert('請用 Safari 瀏覽器開啟網址登入，不要從主畫面 APP 圖示開啟');
-        } else {
-          alert('登入失敗，請用 Safari 瀏覽器開啟網址：anne0603.github.io/wows-inventory');
-        }
-        return;
-      }
-    }
-
+    await signInWithRedirect(auth, googleProvider);
+  } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
-    if (popupErr.code === 'auth/unauthorized-domain') {
-      alert('請用 Safari 瀏覽器開啟網址登入，不要從主畫面 APP 圖示開啟');
-    } else if (popupErr.code !== 'auth/popup-closed-by-user') {
-      alert('登入失敗，請用 Safari 瀏覽器開啟網址登入');
-    }
+    alert('登入失敗：' + (e.code || e.message));
   }
 };
 
