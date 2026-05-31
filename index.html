@@ -973,13 +973,21 @@
 
             <div class="section-label">帳號</div>
             <div class="form-card">
-              <div class="form-row" style="border-bottom:none">
+              <div class="form-row">
                 <div class="setting-icon si-blue"><i class="ti ti-brand-google"></i></div>
                 <div style="flex:1;">
                   <div style="color:#c8d0e8;font-size:16px;">Google 帳號</div>
                   <div style="color:#5a7090;font-size:13px;margin-top:2px;" id="setting-email-display"></div>
                 </div>
                 <button class="text-btn" style="color:#e05545" onclick="logout()">登出</button>
+              </div>
+              <div class="form-row" style="border-bottom:none" onclick="showAuthorizedAccounts()">
+                <div class="setting-icon si-purple"><i class="ti ti-users"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:16px;">授權帳號管理</div>
+                  <div style="color:#5a7090;font-size:13px;margin-top:2px;" id="authorized-accounts-count">允許其他人存取你的資料</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
               </div>
             </div>
             <div style="height:20px"></div>

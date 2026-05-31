@@ -198,7 +198,9 @@ window.logout = async () => {
 // ==================== DATA LOADING ====================
 async function loadAllData() {
   if (!currentUser) return;
-  const uid = currentUser.uid;
+
+  // Check if this user is authorized to access someone else's data
+  const uid = await checkAuthorization();
 
   // Load everything simultaneously with Promise.all
   const [
@@ -244,6 +246,10 @@ async function loadAllData() {
   if (stockOutSnap.status === 'fulfilled')
     stockOutOrders = stockOutSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
 
+  // Load authorized accounts list
+  await loadAuthorizedAccounts();
+  updateAuthorizedCount();
+
   updateHomePage();
   renderProductList();
   renderCustomerList();
@@ -254,12 +260,12 @@ async function loadAllData() {
 
 async function saveSettings() {
   if (!currentUser) return;
-  await setDoc(doc(db, 'users', currentUser.uid, 'settings', 'main'), userSettings);
+  await setDoc(doc(db, 'users', getDataUid(), 'settings', 'main'), userSettings);
 }
 
 async function saveCategories() {
   if (!currentUser) return;
-  await setDoc(doc(db, 'users', currentUser.uid, 'settings', 'categories'), {
+  await setDoc(doc(db, 'users', getDataUid(), 'settings', 'categories'), {
     product: productCategories,
     expense: expenseCategories,
     suppliers: suppliers
@@ -685,13 +691,13 @@ window.saveProduct = async () => {
 
   try {
     if (editingProductId) {
-      await updateDoc(doc(db, 'users', currentUser.uid, 'products', editingProductId), productData);
+      await updateDoc(doc(db, 'users', getDataUid(), 'products', editingProductId), productData);
       const idx = products.findIndex(p => p.id === editingProductId);
       if (idx > -1) products[idx] = { id: editingProductId, ...products[idx], ...productData };
       _newProductImageData = null; _newProductOriginalData = null;
       showToast('商品已更新！');
     } else {
-      const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'products'), productData);
+      const docRef = await addDoc(collection(db, 'users', getDataUid(), 'products'), productData);
       products.push({ id: docRef.id, ...productData });
       if (category && !productCategories.includes(category)) {
         productCategories.push(category);
@@ -886,7 +892,7 @@ window.showProductDetailMenu = () => {
 window.deleteProduct = (productId) => {
   showConfirm('確定要刪除這個商品嗎？此操作無法復原。', async () => {
     try {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'products', productId));
+      await deleteDoc(doc(db, 'users', getDataUid(), 'products', productId));
       products = products.filter(p => p.id !== productId);
       forceCloseModal();
       navigate('products');
@@ -1038,7 +1044,7 @@ window.confirmResetAvgCost = async (productId) => {
   const newCost = parseFloat(document.getElementById('new-avg-cost-input')?.value);
   if (!newCost || newCost <= 0) { showToast('請輸入有效成本'); return; }
   try {
-    await updateDoc(doc(db, 'users', currentUser.uid, 'products', productId), { avgCost: newCost });
+    await updateDoc(doc(db, 'users', getDataUid(), 'products', productId), { avgCost: newCost });
     const p = products.find(x => x.id === productId);
     if (p) p.avgCost = newCost;
     forceCloseModal();
@@ -1211,7 +1217,7 @@ window.confirmStockIn = async () => {
   };
 
   try {
-    const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'stockIn'), orderData);
+    const docRef = await addDoc(collection(db, 'users', getDataUid(), 'stockIn'), orderData);
     stockInOrders.push({ id: docRef.id, ...orderData });
 
     // Update product stock and avg cost
@@ -1222,7 +1228,7 @@ window.confirmStockIn = async () => {
         const oldTotalCost = (p.avgCost || p.cost || 0) * (p.stock || 0);
         const newTotalCost = oldTotalCost + (item.actualCost * item.qty);
         const newAvgCost = newStock > 0 ? newTotalCost / newStock : item.actualCost;
-        await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), {
+        await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), {
           stock: newStock, avgCost: parseFloat(newAvgCost.toFixed(2))
         });
         p.stock = newStock;
@@ -1238,12 +1244,12 @@ window.confirmStockIn = async () => {
           const p = products.find(x => x.id === oldItem.productId);
           if (p) {
             const restoredStock = Math.max(0, (p.stock || 0) - oldItem.qty);
-            await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { stock: restoredStock });
+            await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), { stock: restoredStock });
             p.stock = restoredStock;
           }
         }
       }
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'stockIn', window._editingStockInId));
+      await deleteDoc(doc(db, 'users', getDataUid(), 'stockIn', window._editingStockInId));
       stockInOrders = stockInOrders.filter(x => x.id !== window._editingStockInId);
       window._editingStockInId = null;
       showToast('入庫單已更新！');
@@ -1394,7 +1400,7 @@ window.confirmStockOut = async () => {
   };
 
   try {
-    const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'stockOut'), orderData);
+    const docRef = await addDoc(collection(db, 'users', getDataUid(), 'stockOut'), orderData);
     stockOutOrders.push({ id: docRef.id, ...orderData });
 
     // Update product stock
@@ -1402,7 +1408,7 @@ window.confirmStockOut = async () => {
       const p = products.find(x => x.id === item.productId);
       if (p) {
         const newStock = (p.stock || 0) - item.qty;
-        await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), {
+        await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), {
           stock: Math.max(0, newStock),
           lastOutDate: date
         });
@@ -1412,7 +1418,7 @@ window.confirmStockOut = async () => {
     }
 
     // Update customer stats
-    await updateDoc(doc(db, 'users', currentUser.uid, 'customers', stockOutCustomerId), {
+    await updateDoc(doc(db, 'users', getDataUid(), 'customers', stockOutCustomerId), {
       totalAmount: (customer?.totalAmount || 0) + totalAmount
     });
     if (customer) customer.totalAmount = (customer.totalAmount || 0) + totalAmount;
@@ -1426,12 +1432,12 @@ window.confirmStockOut = async () => {
           const p = products.find(x => x.id === oldItem.productId);
           if (p) {
             const restoredStock = (p.stock || 0) + oldItem.qty;
-            await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { stock: restoredStock });
+            await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), { stock: restoredStock });
             p.stock = restoredStock;
           }
         }
       }
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'stockOut', window._editingStockOutId));
+      await deleteDoc(doc(db, 'users', getDataUid(), 'stockOut', window._editingStockOutId));
       stockOutOrders = stockOutOrders.filter(x => x.id !== window._editingStockOutId);
       window._editingStockOutId = null;
       const btn2 = document.getElementById('confirm-stock-out-btn');
@@ -1593,14 +1599,14 @@ window.saveCustomer = async () => {
   showToast('儲存中...');
   try {
     if (editingCustomerId) {
-      await updateDoc(doc(db, 'users', currentUser.uid, 'customers', editingCustomerId), data);
+      await updateDoc(doc(db, 'users', getDataUid(), 'customers', editingCustomerId), data);
       const idx = customers.findIndex(c => c.id === editingCustomerId);
       if (idx > -1) customers[idx] = { ...customers[idx], ...data };
       showToast('客戶已更新！');
     } else {
       data.createdAt = Date.now();
       data.totalAmount = 0;
-      const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'customers'), data);
+      const docRef = await addDoc(collection(db, 'users', getDataUid(), 'customers'), data);
       customers.push({ id: docRef.id, ...data });
       showToast('客戶已新增！');
     }
@@ -1819,7 +1825,7 @@ window.showCustomerDetailMenu = () => {
 
 window.deleteCustomer = (customerId) => {
   showConfirm('確定要刪除這個客戶嗎？此操作無法復原。', async () => {
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'customers', customerId));
+    await deleteDoc(doc(db, 'users', getDataUid(), 'customers', customerId));
     customers = customers.filter(c => c.id !== customerId);
     navigate('customers');
     showToast('客戶已刪除');
@@ -2059,7 +2065,7 @@ window.updateEditingExpense = async (field, value) => {
   if (field === 'amount') value = parseFloat(value) || 0;
   _editingExpense[field] = value;
   try {
-    await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', _editingExpense.id), { [field]: value });
+    await updateDoc(doc(db, 'users', getDataUid(), 'expenses', _editingExpense.id), { [field]: value });
     const idx = expenses.findIndex(e => e.id === _editingExpense.id);
     if (idx > -1) expenses[idx] = { ...expenses[idx], [field]: value };
     renderExpenseList();
@@ -2073,7 +2079,7 @@ window.updateEditingExpense = async (field, value) => {
 window.deleteExpense = (expenseId) => {
   closeModal();
   showConfirm('確定要刪除這筆支出嗎？', async () => {
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'expenses', expenseId));
+    await deleteDoc(doc(db, 'users', getDataUid(), 'expenses', expenseId));
     expenses = expenses.filter(e => e.id !== expenseId);
     renderExpenseList();
     showToast('支出已刪除');
@@ -2118,13 +2124,13 @@ window.saveExpense = async () => {
   showToast('儲存中...');
   try {
     if (window._editingExpenseId) {
-      await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', window._editingExpenseId), data);
+      await updateDoc(doc(db, 'users', getDataUid(), 'expenses', window._editingExpenseId), data);
       const idx = expenses.findIndex(e => e.id === window._editingExpenseId);
       if (idx > -1) expenses[idx] = { ...expenses[idx], ...data };
       window._editingExpenseId = null;
       showToast('支出已更新！');
     } else {
-      const docRef = await addDoc(collection(db, 'users', currentUser.uid, 'expenses'), data);
+      const docRef = await addDoc(collection(db, 'users', getDataUid(), 'expenses'), data);
       expenses.push({ id: docRef.id, ...data });
       showToast('支出已新增！');
     }
@@ -2349,16 +2355,16 @@ window.deleteStockOutOrder = (orderId) => {
       const p = products.find(x => x.id === item.productId);
       if (p) {
         const newStock = (p.stock || 0) + item.qty;
-        await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { stock: newStock });
+        await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), { stock: newStock });
         p.stock = newStock;
       }
     }
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'stockOut', orderId));
+    await deleteDoc(doc(db, 'users', getDataUid(), 'stockOut', orderId));
     stockOutOrders = stockOutOrders.filter(x => x.id !== orderId);
     // Recalculate customer total
     if (o.customerId) {
       const newTotal = stockOutOrders.filter(x => x.customerId === o.customerId).reduce((s, x) => s + (x.totalAmount||0), 0);
-      try { await updateDoc(doc(db, 'users', currentUser.uid, 'customers', o.customerId), { totalAmount: newTotal }); } catch(e) {}
+      try { await updateDoc(doc(db, 'users', getDataUid(), 'customers', o.customerId), { totalAmount: newTotal }); } catch(e) {}
       const c = customers.find(x => x.id === o.customerId);
       if (c) c.totalAmount = newTotal;
     }
@@ -3025,7 +3031,7 @@ window.backupData = async () => {
   showToast('備份中...');
   try {
     const backupData = { products, customers, expenses, stockInOrders, stockOutOrders, productCategories, expenseCategories, suppliers };
-    await setDoc(doc(db, 'users', currentUser.uid, 'backup', 'latest'), {
+    await setDoc(doc(db, 'users', getDataUid(), 'backup', 'latest'), {
       data: JSON.stringify(backupData), timestamp: Date.now()
     });
     userSettings.lastBackup = formatDate(new Date());
@@ -3040,7 +3046,7 @@ window.backupData = async () => {
 window.restoreData = () => {
   showConfirm('確定要從雲端還原資料嗎？目前資料將被覆蓋。', async () => {
     try {
-      const snap = await getDoc(doc(db, 'users', currentUser.uid, 'backup', 'latest'));
+      const snap = await getDoc(doc(db, 'users', getDataUid(), 'backup', 'latest'));
       if (!snap.exists()) { showToast('沒有備份資料'); return; }
       const backup = JSON.parse(snap.data().data);
       products = backup.products || [];
@@ -3155,7 +3161,7 @@ window.saveEditCategory = async (idx) => {
   for (const p of products) {
     if (p.category === oldName) {
       p.category = newName;
-      try { await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { category: newName }); } catch(e) {}
+      try { await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), { category: newName }); } catch(e) {}
     }
   }
   await saveCategories();
@@ -3251,7 +3257,7 @@ window.saveEditExpenseCategory = async (idx) => {
   for (const e of expenses) {
     if (e.category === oldName) {
       e.category = newName;
-      try { await updateDoc(doc(db, 'users', currentUser.uid, 'expenses', e.id), { category: newName }); } catch(err) {}
+      try { await updateDoc(doc(db, 'users', getDataUid(), 'expenses', e.id), { category: newName }); } catch(err) {}
     }
   }
   await saveCategories();
@@ -3796,16 +3802,152 @@ window.deleteStockInOrder = (orderId) => {
       const p = products.find(x => x.id === item.productId);
       if (p) {
         const newStock = Math.max(0, (p.stock || 0) - item.qty);
-        await updateDoc(doc(db, 'users', currentUser.uid, 'products', p.id), { stock: newStock });
+        await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), { stock: newStock });
         p.stock = newStock;
       }
     }
-    await deleteDoc(doc(db, 'users', currentUser.uid, 'stockIn', orderId));
+    await deleteDoc(doc(db, 'users', getDataUid(), 'stockIn', orderId));
     stockInOrders = stockInOrders.filter(x => x.id !== orderId);
     navigate('report-stock-in');
     showToast('入庫單已刪除');
   });
 };
+
+// ==================== AUTHORIZED ACCOUNTS ====================
+let authorizedAccounts = []; // list of {email, addedAt}
+let _ownerUid = null; // the actual data owner's UID
+
+async function checkAuthorization() {
+  if (!currentUser) return null;
+  const uid = currentUser.uid;
+  const email = currentUser.email;
+
+  // First check if this user is an owner (has their own data)
+  try {
+    const ownSettings = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
+    if (ownSettings.exists()) {
+      // This is an owner account
+      _ownerUid = uid;
+      return uid;
+    }
+  } catch(e) {}
+
+  // Check if this email is authorized by someone else
+  try {
+    const authSnap = await getDocs(collection(db, 'authorizedAccess'));
+    for (const d of authSnap.docs) {
+      const data = d.data();
+      if (data.authorizedEmails && data.authorizedEmails.includes(email)) {
+        _ownerUid = d.id; // owner's UID
+        return d.id;
+      }
+    }
+  } catch(e) {}
+
+  // New user - owner of their own data
+  _ownerUid = uid;
+  return uid;
+}
+
+function getDataUid() {
+  return _ownerUid || currentUser?.uid;
+}
+
+window.showAuthorizedAccounts = async () => {
+  await loadAuthorizedAccounts();
+  renderAuthorizedAccountsModal();
+};
+
+async function loadAuthorizedAccounts() {
+  try {
+    const snap = await getDoc(doc(db, 'authorizedAccess', getDataUid()));
+    if (snap.exists()) {
+      authorizedAccounts = snap.data().authorizedEmails || [];
+    } else {
+      authorizedAccounts = [];
+    }
+  } catch(e) { authorizedAccounts = []; }
+}
+
+function renderAuthorizedAccountsModal() {
+  const isOwner = _ownerUid === currentUser?.uid;
+  showModal(`<div class="modal-handle"></div>
+    <div class="modal-title">授權帳號管理</div>
+    ${!isOwner ? `<div style="background:#1a2818;border:0.5px solid #2a5838;border-radius:10px;padding:12px;margin-bottom:16px;color:var(--green);font-size:14px;text-align:center">
+      你正在以協作者身份存取此帳號的資料
+    </div>` : ''}
+    <p style="color:var(--text4);font-size:14px;margin-bottom:16px;line-height:1.6">
+      輸入對方的 Google 帳號 email，對方登入後即可看到你的資料。
+    </p>
+    <div class="form-card" style="margin-bottom:16px">
+      <div class="form-row" style="border-bottom:none">
+        <input class="form-input" type="email" id="new-auth-email"
+          placeholder="輸入 Google email" style="font-size:16px">
+        <button onclick="addAuthorizedAccount()" style="background:var(--blue);color:white;border:none;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;flex-shrink:0">新增</button>
+      </div>
+    </div>
+    ${authorizedAccounts.length > 0 ? `
+      <div class="section-label">已授權帳號（${authorizedAccounts.length}個）</div>
+      <div class="form-card" style="margin:0 0 16px">
+        ${authorizedAccounts.map((email, idx) => `
+          <div class="form-row" style="${idx === authorizedAccounts.length-1 ? 'border-bottom:none' : ''}">
+            <div style="flex:1">
+              <div style="color:var(--text2);font-size:15px">${email}</div>
+            </div>
+            <button onclick="removeAuthorizedAccount('${email}')"
+              style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px">
+              <i class="ti ti-trash"></i>
+            </button>
+          </div>`).join('')}
+      </div>` : `
+      <div class="empty-state" style="padding:20px 0">
+        <i class="ti ti-users" style="font-size:36px;display:block;margin-bottom:8px;color:var(--text4)"></i>
+        <p style="color:var(--text4)">還沒有授權任何帳號</p>
+      </div>`}
+    <button class="submit-btn" style="background:var(--bg2);border:0.5px solid var(--border);color:var(--text2)" onclick="forceCloseModal()">關閉</button>`);
+}
+
+window.addAuthorizedAccount = async () => {
+  const email = document.getElementById('new-auth-email')?.value?.trim().toLowerCase();
+  if (!email || !email.includes('@')) { showToast('請輸入有效的 email'); return; }
+  if (email === currentUser.email.toLowerCase()) { showToast('不能授權自己的帳號'); return; }
+  if (authorizedAccounts.includes(email)) { showToast('此帳號已授權'); return; }
+
+  authorizedAccounts.push(email);
+  await saveAuthorizedAccounts();
+  updateAuthorizedCount();
+  renderAuthorizedAccountsModal();
+  showToast(`已授權 ${email}`);
+};
+
+window.removeAuthorizedAccount = async (email) => {
+  showConfirm(`確定要移除 ${email} 的存取權限嗎？`, async () => {
+    authorizedAccounts = authorizedAccounts.filter(e => e !== email);
+    await saveAuthorizedAccounts();
+    updateAuthorizedCount();
+    renderAuthorizedAccountsModal();
+    showToast('已移除授權');
+  });
+};
+
+async function saveAuthorizedAccounts() {
+  try {
+    await setDoc(doc(db, 'authorizedAccess', getDataUid()), {
+      authorizedEmails: authorizedAccounts,
+      ownerEmail: currentUser.email,
+      updatedAt: Date.now()
+    });
+  } catch(e) { showToast('儲存失敗：' + e.message); }
+}
+
+function updateAuthorizedCount() {
+  const el = document.getElementById('authorized-accounts-count');
+  if (el) {
+    el.textContent = authorizedAccounts.length > 0
+      ? `已授權 ${authorizedAccounts.length} 個帳號`
+      : '允許其他人存取你的資料';
+  }
+}
 
 // ==================== UTILS ====================
 function formatDate(date) {
