@@ -180,7 +180,7 @@
                 </div>
                 <div class="menu-label">支出管理</div>
               </div>
-              <div class="menu-btn" onclick="navigate('reports')">
+              <div class="menu-btn owner-only" onclick="navigate('reports')">
                 <div class="menu-ill" style="background:#ede0ff;">
                   <svg width="38" height="38" viewBox="0 0 44 44">
                     <rect x="7" y="26" width="7" height="12" rx="3" fill="#6a30c0"/>
@@ -965,7 +965,7 @@
 
             <div class="section-label">資料管理</div>
             <div class="form-card">
-              <div class="form-row" onclick="backupData()">
+              <div class="form-row owner-only" onclick="backupData()">
                 <div class="setting-icon si-green"><i class="ti ti-cloud-upload"></i></div>
                 <div style="flex:1;">
                   <div style="color:#c8d0e8;font-size:16px;">備份至雲端</div>
@@ -973,17 +973,17 @@
                 </div>
                 <i class="ti ti-chevron-right" style="color:#3a5070"></i>
               </div>
-              <div class="form-row" onclick="restoreData()">
+              <div class="form-row owner-only" onclick="restoreData()">
                 <div class="setting-icon si-green"><i class="ti ti-cloud-download"></i></div>
                 <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">從雲端還原</div></div>
                 <i class="ti ti-chevron-right" style="color:#3a5070"></i>
               </div>
-              <div class="form-row" onclick="importData()">
+              <div class="form-row owner-only" onclick="importData()">
                 <div class="setting-icon si-blue"><i class="ti ti-file-import"></i></div>
                 <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">資料匯入</div></div>
                 <i class="ti ti-chevron-right" style="color:#3a5070"></i>
               </div>
-              <div class="form-row" onclick="exportData()">
+              <div class="form-row owner-only" onclick="exportData()">
                 <div class="setting-icon si-blue"><i class="ti ti-file-export"></i></div>
                 <div style="flex:1;"><div style="color:#c8d0e8;font-size:16px;">資料匯出</div></div>
                 <i class="ti ti-chevron-right" style="color:#3a5070"></i>
@@ -999,6 +999,9 @@
             </div>
 
             <div class="section-label">帳號</div>
+            <div id="collaborator-banner" style="display:none;background:#1a2818;border:0.5px solid #2a5838;border-radius:12px;padding:12px 14px;margin-bottom:14px;color:var(--green);font-size:14px;text-align:center">
+              🤝 你正以協作者身份存取此帳號
+            </div>
             <div class="form-card">
               <div class="form-row">
                 <div class="setting-icon si-blue"><i class="ti ti-brand-google"></i></div>
@@ -1008,7 +1011,7 @@
                 </div>
                 <button class="text-btn" style="color:#e05545" onclick="logout()">登出</button>
               </div>
-              <div class="form-row" style="border-bottom:none" onclick="navigate('authorized-accounts')">
+              <div class="form-row owner-only" style="border-bottom:none" onclick="navigate('authorized-accounts')">
                 <div class="setting-icon si-purple"><i class="ti ti-users"></i></div>
                 <div style="flex:1;">
                   <div style="color:#c8d0e8;font-size:16px;">授權帳號管理</div>

@@ -371,8 +371,8 @@ function updateHomePage() {
 
   document.getElementById('today-in').textContent = `$${todayIn.toLocaleString()}`;
   document.getElementById('today-out').textContent = `$${todayOut.toLocaleString()}`;
-  document.getElementById('month-profit').textContent = `$${monthProfit.toLocaleString()}`;
-  document.getElementById('total-inventory-value').textContent = `$${totalInventoryValue.toLocaleString()}`;
+  document.getElementById('month-profit').textContent = isOwner() ? `$${monthProfit.toLocaleString()}` : '***';
+  document.getElementById('total-inventory-value').textContent = isOwner() ? `$${totalInventoryValue.toLocaleString()}` : '***';
   document.getElementById('month-out-count').textContent = `${monthOutCount} 筆`;
   const monthlyBadge = document.querySelector('.monthly-badge');
   if (monthlyBadge) {
@@ -2887,6 +2887,15 @@ function getRecentMonths() {
 
 // ==================== SETTINGS ====================
 function renderSettings() {
+  // Show/hide owner-only settings
+  const ownerOnlyEls = document.querySelectorAll('.owner-only');
+  ownerOnlyEls.forEach(el => {
+    el.style.display = isOwner() ? '' : 'none';
+  });
+  // Show collaborator banner
+  const banner = document.getElementById('collaborator-banner');
+  if (banner) banner.style.display = isOwner() ? 'none' : 'block';
+
   document.getElementById('setting-company-name-display').textContent = userSettings.companyName || '我的店';
   document.getElementById('setting-sort-display').textContent = getSortLabel(userSettings.sortBy);
   document.getElementById('setting-low-stock-display').textContent = `低於 ${userSettings.lowStockThreshold || 5} 件`;
@@ -3875,6 +3884,10 @@ async function checkAuthorization() {
 
 function getDataUid() {
   return _ownerUid || currentUser?.uid;
+}
+
+function isOwner() {
+  return _ownerUid === currentUser?.uid;
 }
 
 async function loadAuthorizedAccounts() {
