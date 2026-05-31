@@ -217,20 +217,24 @@ window.handleGoogleLogin = async () => {
 
     if (needsRedirect || !popupErr.code) {
       try {
-        console.log('Trying redirect...');
         await signInWithRedirect(auth, googleProvider);
         return;
       } catch (redirectErr) {
-        console.log('Redirect error:', redirectErr.code, redirectErr.message);
         if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
-        alert('錯誤：' + redirectErr.code + ' - ' + redirectErr.message);
+        if (redirectErr.message?.includes('disallowed_useragent')) {
+          alert('請用 Safari 瀏覽器開啟網址登入，不要從主畫面 APP 圖示開啟');
+        } else {
+          alert('登入失敗，請用 Safari 瀏覽器開啟網址：anne0603.github.io/wows-inventory');
+        }
         return;
       }
     }
 
     if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
-    if (popupErr.code !== 'auth/popup-closed-by-user') {
-      alert('登入錯誤：' + popupErr.code);
+    if (popupErr.code === 'auth/unauthorized-domain') {
+      alert('請用 Safari 瀏覽器開啟網址登入，不要從主畫面 APP 圖示開啟');
+    } else if (popupErr.code !== 'auth/popup-closed-by-user') {
+      alert('登入失敗，請用 Safari 瀏覽器開啟網址登入');
     }
   }
 };
