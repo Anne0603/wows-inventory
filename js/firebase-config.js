@@ -7,7 +7,7 @@ import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-s
 
 const firebaseConfig = {
   apiKey: "AIzaSyAhKe7HjrDVQPOrKT8XsTOKs1k3uBI5kEg",
-  authDomain: "wows-inventory.firebaseapp.com",
+  authDomain: "anne0603.github.io",
   projectId: "wows-inventory",
   storageBucket: "wows-inventory.firebasestorage.app",
   messagingSenderId: "359501571165",
