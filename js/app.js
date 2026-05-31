@@ -68,22 +68,38 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     const result = await getRedirectResult(auth);
     if (result?.user) {
-      // Already handled by onAuthStateChanged
+      console.log('Redirect login success:', result.user.email);
     }
   } catch (e) {
     console.log('Redirect result error:', e.code);
   }
 
   document.getElementById('google-login-btn').addEventListener('click', async () => {
-    try {
-      // Use redirect for PWA/WebView compatibility
-      await signInWithRedirect(auth, googleProvider);
-    } catch (e) {
-      // Fallback to popup for regular browser
+    // Detect if running as PWA/WebView
+    const isStandalone = window.navigator.standalone ||
+      window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isStandalone) {
+      // PWA mode - use redirect
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (e) {
+        showToast('請用 Safari 瀏覽器開啟網址登入');
+      }
+    } else {
+      // Browser mode - try popup first, fallback to redirect
       try {
         await signInWithPopup(auth, googleProvider);
-      } catch (e2) {
-        showToast('登入失敗，請用 Safari 開啟網址登入');
+      } catch (e) {
+        if (e.code === 'auth/popup-blocked' || e.code === 'auth/unauthorized-domain' || e.code === 'auth/operation-not-supported-in-this-environment') {
+          try {
+            await signInWithRedirect(auth, googleProvider);
+          } catch (e2) {
+            showToast('登入失敗，請用 Safari 開啟網址登入');
+          }
+        } else {
+          showToast('登入失敗：' + (e.code || e.message));
+        }
       }
     }
   });
