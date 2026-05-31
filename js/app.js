@@ -196,18 +196,26 @@ window.removeAvatar = async () => {
 window.handleGoogleLogin = async () => {
   const btn = document.getElementById('google-login-btn');
   if (btn) { btn.textContent = '登入中...'; btn.disabled = true; }
+
+  // Try popup first (works in Safari browser)
+  try {
+    await signInWithPopup(auth, googleProvider);
+    return;
+  } catch (e) {
+    console.log('Popup failed:', e.code);
+  }
+
+  // Try redirect (works in PWA/WebView)
   try {
     await signInWithRedirect(auth, googleProvider);
+    return;
   } catch (e) {
-    console.error('Redirect failed:', e);
-    if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (e2) {
-      if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
-      alert('登入失敗：' + (e2.code || e2.message));
-    }
+    console.log('Redirect failed:', e.code);
   }
+
+  // Both failed
+  if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
+  alert('登入失敗，請確認網路連線後重試');
 };
 
 window.logout = async () => {
