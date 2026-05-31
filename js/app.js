@@ -3838,26 +3838,31 @@ async function checkAuthorization() {
   const uid = currentUser.uid;
   const email = currentUser.email.toLowerCase();
 
+  console.log('checkAuthorization for:', email, uid);
+
   // Check simultaneously: own data + authorized access
   const [ownSnap, authSnap] = await Promise.allSettled([
     getDoc(doc(db, 'users', uid, 'settings', 'main')),
     getDocs(collection(db, 'authorizedAccess'))
   ]);
 
-  // Check if authorized by someone else FIRST (takes priority if both exist)
+  console.log('authSnap status:', authSnap.status);
   if (authSnap.status === 'fulfilled') {
+    console.log('authorizedAccess docs:', authSnap.value.docs.length);
     for (const d of authSnap.value.docs) {
       const data = d.data();
+      console.log('checking doc:', d.id, 'emails:', data.authorizedEmails);
       const emails = (data.authorizedEmails || []).map(e => e.toLowerCase());
       if (emails.includes(email) && d.id !== uid) {
         _ownerUid = d.id;
-        console.log('Authorized access: using owner', d.id);
+        console.log('✅ Authorized! Using owner UID:', d.id);
+        showToast('以協作者身份登入');
         return d.id;
       }
     }
   }
 
-  // Otherwise use own account
+  console.log('Using own UID:', uid);
   _ownerUid = uid;
   return uid;
 }
