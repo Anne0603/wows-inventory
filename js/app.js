@@ -3878,13 +3878,20 @@ window.showAuthorizedAccounts = async () => {
 
 async function loadAuthorizedAccounts() {
   try {
-    const snap = await getDoc(doc(db, 'authorizedAccess', getDataUid()));
+    const uid = getDataUid();
+    console.log('loadAuthorizedAccounts for uid:', uid);
+    const snap = await getDoc(doc(db, 'authorizedAccess', uid));
+    console.log('snap exists:', snap.exists(), 'data:', snap.data());
     if (snap.exists()) {
       authorizedAccounts = snap.data().authorizedEmails || [];
     } else {
       authorizedAccounts = [];
     }
-  } catch(e) { authorizedAccounts = []; }
+    console.log('authorizedAccounts loaded:', authorizedAccounts);
+  } catch(e) {
+    console.error('loadAuthorizedAccounts error:', e);
+    authorizedAccounts = [];
+  }
 }
 
 function renderAuthorizedAccountsModal() {
