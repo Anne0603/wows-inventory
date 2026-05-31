@@ -4,7 +4,7 @@ import {
   query, where, orderBy, onSnapshot, updateDoc, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
-  signInWithPopup, signOut, onAuthStateChanged
+  signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   ref, uploadString, getDownloadURL, deleteObject
@@ -64,11 +64,27 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Google Login
+  // Handle redirect result first (when returning from Google login)
+  try {
+    const result = await getRedirectResult(auth);
+    if (result?.user) {
+      // Already handled by onAuthStateChanged
+    }
+  } catch (e) {
+    console.log('Redirect result error:', e.code);
+  }
+
   document.getElementById('google-login-btn').addEventListener('click', async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      // Use redirect for PWA/WebView compatibility
+      await signInWithRedirect(auth, googleProvider);
     } catch (e) {
-      showToast('登入失敗：' + e.message);
+      // Fallback to popup for regular browser
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (e2) {
+        showToast('登入失敗，請用 Safari 開啟網址登入');
+      }
     }
   });
 
