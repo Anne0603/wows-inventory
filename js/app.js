@@ -200,58 +200,49 @@ async function loadAllData() {
   if (!currentUser) return;
   const uid = currentUser.uid;
 
-  // Load settings
-  try {
-    const settingsDoc = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
-    if (settingsDoc.exists()) {
-      userSettings = { ...userSettings, ...settingsDoc.data() };
-      applySettings();
-    }
-  } catch (e) { console.log('Settings load error:', e); }
+  // Load everything simultaneously with Promise.all
+  const [
+    settingsSnap, categoriesSnap,
+    productsSnap, customersSnap, expensesSnap,
+    stockInSnap, stockOutSnap
+  ] = await Promise.allSettled([
+    getDoc(doc(db, 'users', uid, 'settings', 'main')),
+    getDoc(doc(db, 'users', uid, 'settings', 'categories')),
+    getDocs(collection(db, 'users', uid, 'products')),
+    getDocs(collection(db, 'users', uid, 'customers')),
+    getDocs(collection(db, 'users', uid, 'expenses')),
+    getDocs(collection(db, 'users', uid, 'stockIn')),
+    getDocs(collection(db, 'users', uid, 'stockOut'))
+  ]);
 
-  // Load products
-  try {
-    const snap = await getDocs(collection(db, 'users', uid, 'products'));
-    products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) { console.log('Products load error:', e); }
+  // Apply settings
+  if (settingsSnap.status === 'fulfilled' && settingsSnap.value.exists()) {
+    userSettings = { ...userSettings, ...settingsSnap.value.data() };
+    applySettings();
+  }
 
-  // Load customers
-  try {
-    const snap = await getDocs(collection(db, 'users', uid, 'customers'));
-    customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) { console.log('Customers load error:', e); }
+  // Apply categories
+  if (categoriesSnap.status === 'fulfilled' && categoriesSnap.value.exists()) {
+    const catData = categoriesSnap.value.data();
+    productCategories = catData.product || [];
+    expenseCategories = catData.expense || expenseCategories;
+    suppliers = catData.suppliers || [];
+  }
+  if (productCategories.length === 0) {
+    productCategories = ['服飾', '配件', '生活用品', '美妝', '電子', '其他'];
+  }
 
-  // Load expenses
-  try {
-    const snap = await getDocs(collection(db, 'users', uid, 'expenses'));
-    expenses = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) { console.log('Expenses load error:', e); }
-
-  // Load stock in orders
-  try {
-    const snap = await getDocs(collection(db, 'users', uid, 'stockIn'));
-    stockInOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) { console.log('StockIn load error:', e); }
-
-  // Load stock out orders
-  try {
-    const snap = await getDocs(collection(db, 'users', uid, 'stockOut'));
-    stockOutOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (e) { console.log('StockOut load error:', e); }
-
-  // Load categories
-  try {
-    const snap = await getDoc(doc(db, 'users', uid, 'settings', 'categories'));
-    if (snap.exists()) {
-      productCategories = snap.data().product || [];
-      expenseCategories = snap.data().expense || expenseCategories;
-      suppliers = snap.data().suppliers || [];
-    }
-    // Set default product categories for first-time users
-    if (productCategories.length === 0) {
-      productCategories = ['服飾', '配件', '生活用品', '美妝', '電子', '其他'];
-    }
-  } catch (e) { console.log('Categories load error:', e); }
+  // Apply data
+  if (productsSnap.status === 'fulfilled')
+    products = productsSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (customersSnap.status === 'fulfilled')
+    customers = customersSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (expensesSnap.status === 'fulfilled')
+    expenses = expensesSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (stockInSnap.status === 'fulfilled')
+    stockInOrders = stockInSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (stockOutSnap.status === 'fulfilled')
+    stockOutOrders = stockOutSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
 
   updateHomePage();
   renderProductList();
