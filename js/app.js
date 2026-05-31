@@ -3836,31 +3836,28 @@ let _ownerUid = null; // the actual data owner's UID
 async function checkAuthorization() {
   if (!currentUser) return null;
   const uid = currentUser.uid;
-  const email = currentUser.email;
+  const email = currentUser.email.toLowerCase();
 
-  // First check if this user is an owner (has their own data)
-  try {
-    const ownSettings = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
-    if (ownSettings.exists()) {
-      // This is an owner account
-      _ownerUid = uid;
-      return uid;
-    }
-  } catch(e) {}
+  // Check simultaneously: own data + authorized access
+  const [ownSnap, authSnap] = await Promise.allSettled([
+    getDoc(doc(db, 'users', uid, 'settings', 'main')),
+    getDocs(collection(db, 'authorizedAccess'))
+  ]);
 
-  // Check if this email is authorized by someone else
-  try {
-    const authSnap = await getDocs(collection(db, 'authorizedAccess'));
-    for (const d of authSnap.docs) {
+  // Check if authorized by someone else FIRST (takes priority if both exist)
+  if (authSnap.status === 'fulfilled') {
+    for (const d of authSnap.value.docs) {
       const data = d.data();
-      if (data.authorizedEmails && data.authorizedEmails.includes(email)) {
-        _ownerUid = d.id; // owner's UID
+      const emails = (data.authorizedEmails || []).map(e => e.toLowerCase());
+      if (emails.includes(email) && d.id !== uid) {
+        _ownerUid = d.id;
+        console.log('Authorized access: using owner', d.id);
         return d.id;
       }
     }
-  } catch(e) {}
+  }
 
-  // New user - owner of their own data
+  // Otherwise use own account
   _ownerUid = uid;
   return uid;
 }
