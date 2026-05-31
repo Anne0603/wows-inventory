@@ -197,9 +197,16 @@ window.handleGoogleLogin = async () => {
   const btn = document.getElementById('google-login-btn');
   if (btn) { btn.textContent = '登入中...'; btn.disabled = true; }
   try {
-    await signInWithRedirect(auth, googleProvider);
+    await signInWithPopup(auth, googleProvider);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = '使用 Google 帳號登入'; }
+  }
+};
+
+window.handleGoogleLoginRedirect = async () => {
+  try {
+    await signInWithRedirect(auth, googleProvider);
+  } catch (e) {
     alert('登入失敗：' + (e.code || e.message));
   }
 };
