@@ -3879,14 +3879,22 @@ async function checkAuthorization() {
     ]);
 
     // Check authorized list first
+    let foundOwner = null;
     for (const d of authSnap.docs) {
       if (d.id === uid) continue;
-      const emails = (d.data().authorizedEmails || []).map(e => e.toLowerCase());
-      if (emails.includes(email)) {
-        _ownerUid = d.id;
-        showToast('以協作者身份登入');
-        return d.id;
+      const rawEmails = d.data().authorizedEmails || [];
+      const emails = rawEmails.map(e => e.toLowerCase().trim());
+      console.log('Checking doc:', d.id, 'emails:', emails, 'against:', email);
+      if (emails.includes(email.trim())) {
+        foundOwner = d.id;
+        break;
       }
+    }
+
+    if (foundOwner) {
+      _ownerUid = foundOwner;
+      showToast('以協作者身份登入');
+      return foundOwner;
     }
 
     // Check own data
@@ -3896,14 +3904,16 @@ async function checkAuthorization() {
     }
 
     // No authorization and no real data = unauthorized
+    // But show their email in the message so they can tell admin
     await signOut(auth);
     showLoginScreen();
     setTimeout(() => {
       showModal(`<div class="modal-handle"></div>
         <div class="modal-title" style="color:var(--red)">未獲授權</div>
         <p style="color:var(--text2);font-size:16px;text-align:center;margin-bottom:20px;line-height:1.7">
-          此 Google 帳號尚未獲得授權<br>
-          <span style="color:var(--text4);font-size:14px">請聯絡管理員將你的 email 加入授權名單</span>
+          此帳號尚未獲得授權<br>
+          <span style="color:var(--blue);font-size:14px">${currentUser?.email}</span><br>
+          <span style="color:var(--text4);font-size:13px;margin-top:4px;display:block">請將此 email 傳給管理員加入授權名單</span>
         </p>
         <button class="submit-btn" onclick="forceCloseModal()">確認</button>`);
     }, 300);
