@@ -3864,11 +3864,21 @@ async function checkAuthorization() {
   const uid = currentUser.uid;
   const email = currentUser.email.toLowerCase();
 
-  try {
-    const authSnap = await getDocs(collection(db, 'authorizedAccess'));
+  // Add 8 second timeout to prevent infinite loading
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('timeout')), 8000)
+  );
 
-    // ALWAYS check authorized access first
-    // Even if collaborator accidentally created own empty data
+  try {
+    const [authSnap, ownSnap] = await Promise.race([
+      Promise.all([
+        getDocs(collection(db, 'authorizedAccess')),
+        getDoc(doc(db, 'users', uid, 'settings', 'main'))
+      ]),
+      timeout
+    ]);
+
+    // Check authorized list first
     for (const d of authSnap.docs) {
       if (d.id === uid) continue;
       const emails = (d.data().authorizedEmails || []).map(e => e.toLowerCase());
@@ -3879,10 +3889,8 @@ async function checkAuthorization() {
       }
     }
 
-    // Not in any authorized list - check if has own real data
-    const ownSnap = await getDoc(doc(db, 'users', uid, 'settings', 'main'));
+    // Check own data
     if (ownSnap.exists() && ownSnap.data().companyName) {
-      // Has real settings data = legitimate owner
       _ownerUid = uid;
       return uid;
     }
@@ -3902,8 +3910,8 @@ async function checkAuthorization() {
     return null;
 
   } catch(e) {
-    console.log('Auth check error:', e);
-    // On error, check own data as fallback
+    console.log('Auth check error or timeout:', e.message);
+    // On timeout or error, fall back to own UID
     _ownerUid = uid;
     return uid;
   }
