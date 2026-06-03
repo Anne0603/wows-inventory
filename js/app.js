@@ -22,7 +22,8 @@ let userSettings = {
   currency: '$',
   barcodePrefix: 'P',
   stockInPrefix: 'I',
-  stockOutPrefix: 'O'
+  stockOutPrefix: 'O',
+  autoArchiveDays: 30
 };
 let products = [];
 let customers = [];
@@ -277,6 +278,7 @@ async function loadAllData() {
   updateHomePage();
   renderProductList();
   renderCustomerList();
+  checkAutoArchive();
   renderExpenseList();
   checkBackupReminder();
   hideLoadingScreen();
@@ -842,7 +844,11 @@ window.showProductDetail = (productId) => {
         <button class="action-btn in" onclick="quickStockIn('${p.id}')">快速入庫</button>
         <button class="action-btn out" onclick="quickStockOut('${p.id}')">快速出庫</button>
       </div>
-      ${isOwner() ? `<div style="display:grid;grid-template-columns:1fr;margin-top:8px">
+      ${isOwner() ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        ${p.archived
+          ? `<button class="submit-btn" style="background:var(--bg2);color:var(--text2);border:0.5px solid var(--border)" onclick="unarchiveProduct('${p.id}')">解除封存</button>`
+          : `<button class="submit-btn" style="background:var(--bg2);color:var(--amber);border:0.5px solid var(--amber)" onclick="archiveProduct('${p.id}')">封存商品</button>`
+        }
         <button class="submit-btn red" onclick="deleteProduct('${p.id}')">刪除商品</button>
       </div>` : ''}
       <div style="height:20px"></div>
@@ -915,6 +921,54 @@ window.showProductDetailMenu = () => {
     <div class="picker-item" onclick="forceCloseModal();editProduct('${currentProductDetailId}')"><i class="ti ti-edit"></i> 編輯商品</div>
     <div class="picker-item" style="color:var(--red)" onclick="forceCloseModal();deleteProduct('${currentProductDetailId}')"><i class="ti ti-trash"></i> 刪除商品</div>`);
 };
+
+window.archiveProduct = async (productId) => {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  showConfirm(`確定要封存「${p.name}」嗎？封存後不會出現在庫存列表，也不會觸發低庫存通知。`, async () => {
+    try {
+      await updateDoc(doc(db, 'users', getDataUid(), 'products', productId), { archived: true, archivedAt: new Date().toISOString() });
+      const idx = products.findIndex(x => x.id === productId);
+      if (idx > -1) { products[idx].archived = true; products[idx].archivedAt = new Date().toISOString(); }
+      showToast('商品已封存');
+      navigate(window._productDetailFromPage || 'products');
+    } catch(e) { showToast('封存失敗：' + e.message); }
+  });
+};
+
+window.unarchiveProduct = async (productId) => {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  showConfirm(`確定要解除封存「${p.name}」嗎？`, async () => {
+    try {
+      await updateDoc(doc(db, 'users', getDataUid(), 'products', productId), { archived: false, archivedAt: null, zeroStockSince: null });
+      const idx = products.findIndex(x => x.id === productId);
+      if (idx > -1) { products[idx].archived = false; products[idx].archivedAt = null; products[idx].zeroStockSince = null; }
+      showToast('已解除封存');
+      navigate('products');
+    } catch(e) { showToast('解除封存失敗：' + e.message); }
+  });
+};
+
+// Auto-archive: products with stock=0 for X days
+async function checkAutoArchive() {
+  const days = userSettings.autoArchiveDays || 30;
+  if (!days || days <= 0) return;
+  const now = new Date();
+  const toArchive = products.filter(p => {
+    if (p.archived) return false;
+    if (p.stock !== 0) return false;
+    if (!p.zeroStockSince) return false;
+    const diff = (now - new Date(p.zeroStockSince)) / (1000 * 60 * 60 * 24);
+    return diff >= days;
+  });
+  for (const p of toArchive) {
+    await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), { archived: true, archivedAt: now.toISOString() });
+    const idx = products.findIndex(x => x.id === p.id);
+    if (idx > -1) { products[idx].archived = true; products[idx].archivedAt = now.toISOString(); }
+  }
+  if (toArchive.length > 0) { showToast(`已自動封存 ${toArchive.length} 件庫存為0的商品`); renderProductList(); }
+}
 
 window.deleteProduct = (productId) => {
   showConfirm('確定要刪除這個商品嗎？此操作無法復原。', async () => {
@@ -1185,7 +1239,7 @@ window.calcShipping = () => {
 };
 
 window.showProductPickerForStockIn = () => {
-  showProductPicker((p) => addProductToStockIn(p.id));
+  showProductPicker((p) => addProductToStockIn(p.id), 'stock-in');
 };
 
 function addProductToStockIn(productId) {
@@ -1380,7 +1434,7 @@ function checkStockOutValidity() {
 }
 
 window.showProductPickerForStockOut = () => {
-  showProductPicker((p) => addProductToStockOut(p.id));
+  showProductPicker((p) => addProductToStockOut(p.id), 'stock-out');
 };
 
 function addProductToStockOut(productId) {
@@ -1439,12 +1493,16 @@ window.confirmStockOut = async () => {
       const p = products.find(x => x.id === item.productId);
       if (p) {
         const newStock = (p.stock || 0) - item.qty;
+        const zeroUpdate = newStock <= 0 ? { zeroStockSince: p.zeroStockSince || new Date().toISOString() } : { zeroStockSince: null };
         await updateDoc(doc(db, 'users', getDataUid(), 'products', p.id), {
           stock: Math.max(0, newStock),
-          lastOutDate: date
+          lastOutDate: date,
+          ...zeroUpdate
         });
         p.stock = Math.max(0, newStock);
         p.lastOutDate = date;
+        if (newStock <= 0 && !p.zeroStockSince) p.zeroStockSince = new Date().toISOString();
+        if (newStock > 0) p.zeroStockSince = null;
       }
     }
 
@@ -2911,6 +2969,8 @@ function renderSettings() {
   document.getElementById('setting-sort-display').textContent = getSortLabel(userSettings.sortBy);
   document.getElementById('setting-low-stock-display').textContent = `低於 ${userSettings.lowStockThreshold || 5} 件`;
   document.getElementById('setting-stale-days-display').textContent = `超過 ${userSettings.staleDays || 30} 天`;
+  const aadEl = document.getElementById('setting-auto-archive-days-display');
+  if (aadEl) aadEl.textContent = `庫存為0滿 ${userSettings.autoArchiveDays || 30} 天`;
   document.getElementById('setting-email-display').textContent = currentUser?.email || '';
   document.getElementById('last-backup-display').textContent = userSettings.lastBackup ? `上次備份：${userSettings.lastBackup}` : '尚未備份';
   const bpEl = document.getElementById('setting-barcode-prefix-display');
@@ -3394,12 +3454,34 @@ window.deleteSupplierItem = (idx) => {
 };
 
 // ==================== PICKERS ====================
-function showProductPicker(callback) {
-  const sorted = sortProducts(products);
+function showProductPicker(callback, mode) {
+  // mode: 'stock-in' shows archived separately, 'stock-out' hides archived, default shows all active
+  const activeProducts = products.filter(p => !p.archived);
+  const archivedProducts = products.filter(p => p.archived);
+  const sorted = sortProducts(activeProducts);
   const allCats = ['全部', ...productCategories];
   window._pickerCallback = callback;
+  window._pickerMode = mode || 'default';
   window._pickerProducts = sorted;
   window._pickerCategory = '全部';
+  window._pickerShowArchived = false;
+
+  const archivedSection = (mode === 'stock-in' && archivedProducts.length > 0)
+    ? `<div style="margin-top:12px">
+        <div style="color:var(--text4);font-size:12px;padding:4px 0 8px;border-top:0.5px solid var(--border);margin-top:4px">已封存商品（入庫後自動解封）</div>
+        ${archivedProducts.map(p => `
+          <div class="picker-item" onclick="selectArchivedPickerProduct('${p.id}')" style="opacity:0.65">
+            <div class="product-thumb" style="width:50px;height:50px;flex-shrink:0">
+              ${p.imageUrl ? `<img src="${p.imageUrl}">` : `<i class="ti ti-photo"></i>`}
+            </div>
+            <div style="flex:1">
+              <div style="color:var(--text2);font-size:16px;font-weight:500">${p.name}</div>
+              <div style="color:var(--amber);font-size:12px;margin-top:2px">已封存 ･ 庫存: ${p.stock}</div>
+            </div>
+            <div style="color:var(--blue);font-size:14px;font-weight:500">$${p.price||0}</div>
+          </div>`).join('')}
+      </div>` : '';
+
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title">選擇商品</div>
     <div class="search-bar" style="margin-bottom:8px">
@@ -3407,34 +3489,39 @@ function showProductPicker(callback) {
       <input type="text" placeholder="搜尋商品" id="picker-search"
         oninput="filterPickerProducts()" style="background:none;border:none;outline:none;color:var(--text2);font-size:17px;flex:1;width:100%">
     </div>
-    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;scrollbar-width:none">
-      ${allCats.map(c => `<div onclick="pickerSelectCat('${c}')" id="picker-cat-${c.replace(/\s/g,'_')}"
-        style="background:${c==='全部'?'var(--blue)':'var(--bg2)'};border:0.5px solid ${c==='全部'?'var(--blue)':'var(--border)'};
-        border-radius:20px;padding:6px 14px;color:${c==='全部'?'white':'var(--text3)'};
-        font-size:13px;white-space:nowrap;flex-shrink:0;cursor:pointer">${c}</div>`).join('')}
+    <div style="margin-bottom:10px">
+      <select id="picker-cat-select" onchange="pickerSelectCat(this.value)"
+        style="width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text2);font-size:14px;outline:none;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%235a7090%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;background-size:16px">
+        ${allCats.map(c => `<option value="${c}">${c}</option>`).join('')}
+      </select>
     </div>
     <div id="picker-product-list">
       ${renderPickerList(sorted, callback)}
+      ${archivedSection}
     </div>`);
 }
 
+window.selectArchivedPickerProduct = async (productId) => {
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  // Auto-unarchive and call callback
+  try {
+    await updateDoc(doc(db, 'users', getDataUid(), 'products', productId), { archived: false, archivedAt: null, zeroStockSince: null });
+    p.archived = false; p.archivedAt = null; p.zeroStockSince = null;
+    showToast(`「${p.name}」已解除封存`);
+  } catch(e) { showToast('解除封存失敗'); return; }
+  if (window._pickerCallback) { window._pickerCallback(p); closeModal(); }
+};
+
 window.pickerSelectCat = (cat) => {
   window._pickerCategory = cat;
-  // Update tab styles
-  ['全部', ...productCategories].forEach(c => {
-    const el = document.getElementById('picker-cat-' + c.replace(/\s/g,'_'));
-    if (!el) return;
-    el.style.background = c === cat ? 'var(--blue)' : 'var(--bg2)';
-    el.style.borderColor = c === cat ? 'var(--blue)' : 'var(--border)';
-    el.style.color = c === cat ? 'white' : 'var(--text3)';
-  });
   filterPickerProducts();
 };
 
 window.filterPickerProducts = () => {
   const search = document.getElementById('picker-search')?.value?.toLowerCase() || '';
   const cat = window._pickerCategory || '全部';
-  const filtered = (window._pickerProducts || products).filter(p => {
+  const filtered = (window._pickerProducts || products.filter(p => !p.archived)).filter(p => {
     const matchSearch = !search || p.name?.toLowerCase().includes(search) || p.model?.toLowerCase().includes(search);
     const matchCat = cat === '全部' || p.category === cat;
     return matchSearch && matchCat;

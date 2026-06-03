@@ -222,6 +222,12 @@
             <button class="icon-btn" onclick="showProductFilter()"><i class="ti ti-adjustments"></i></button>
           </div>
           <div class="page-content">
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <div id="product-tab-active" onclick="window._showingArchivedProducts=false;renderProductList()"
+                style="flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--blue);color:white;font-size:14px;cursor:pointer;border:0.5px solid var(--blue)">上架中</div>
+              <div id="product-tab-archived" onclick="window._showingArchivedProducts=true;renderProductList()"
+                style="flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--bg2);color:var(--text3);font-size:14px;cursor:pointer;border:0.5px solid var(--border)">已封存</div>
+            </div>
             <div class="search-bar">
               <i class="ti ti-search"></i>
               <input type="text" placeholder="品名／型號" id="product-search" oninput="filterProducts()">
@@ -929,6 +935,14 @@
                 <div style="flex:1;">
                   <div style="color:#c8d0e8;font-size:16px;">滯銷天數設定</div>
                   <div style="color:#5a7090;font-size:13px;margin-top:2px;" id="setting-stale-days-display">超過 30 天</div>
+                </div>
+                <i class="ti ti-chevron-right" style="color:#3a5070"></i>
+              </div>
+              <div class="form-row" onclick="editSetting('auto-archive-days')">
+                <div class="setting-icon si-amber"><i class="ti ti-archive"></i></div>
+                <div style="flex:1;">
+                  <div style="color:#c8d0e8;font-size:16px;">自動封存天數</div>
+                  <div style="color:#5a7090;font-size:13px;margin-top:2px;" id="setting-auto-archive-days-display">庫存為0滿 30 天</div>
                 </div>
                 <i class="ti ti-chevron-right" style="color:#3a5070"></i>
               </div>
