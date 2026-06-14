@@ -483,12 +483,22 @@ function renderProductList() {
   const container = document.getElementById('product-list-container');
   if (!container) return;
 
+  const showingArchived = window._showingArchivedProducts === true;
+
   // Update filter button label
   const label = document.getElementById('category-filter-label');
   if (label) label.textContent = selectedProductCategory === '全部' ? '全部類別' : selectedProductCategory;
 
+  // Update tab UI
+  const activeTab = document.getElementById('product-tab-active');
+  const archiveTab = document.getElementById('product-tab-archived');
+  if (activeTab) { activeTab.style.background = showingArchived ? 'var(--bg2)' : 'var(--blue)'; activeTab.style.color = showingArchived ? 'var(--text3)' : 'white'; }
+  if (archiveTab) { archiveTab.style.background = showingArchived ? 'var(--blue)' : 'var(--bg2)'; archiveTab.style.color = showingArchived ? 'white' : 'var(--text3)'; }
+
   // Filter products
   let filtered = products.filter(p => {
+    const isArchived = p.archived === true;
+    if (showingArchived !== isArchived) return false;
     const matchSearch = !search ||
       p.name?.toLowerCase().includes(search) ||
       p.model?.toLowerCase().includes(search);
