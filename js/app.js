@@ -312,7 +312,7 @@ window.navigate = (page) => {
 
   // Page-specific init
   if (page === 'home') updateHomePage();
-  if (page === 'products') renderProductList();
+  if (page === 'products') { window._showingArchivedProducts = false; renderProductList(); }
   if (page === 'customers') { renderCustomerList(); }
   if (page === 'expenses') renderExpenseList();
   if (page === 'reports') renderReports();
