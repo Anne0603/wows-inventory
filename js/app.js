@@ -1299,14 +1299,23 @@ window.confirmStockIn = async () => {
   // Generate order number
   const orderNum = generateOrderNumber('I', date);
 
+  // Clean items - remove undefined fields to avoid Firestore invalid-argument error
+  const cleanOrderItems = orderItems.map(i => {
+    const item = {};
+    for (const [k, v] of Object.entries(i)) {
+      if (v !== undefined) item[k] = v;
+    }
+    return item;
+  });
+
   const orderData = {
-    orderNum, date, notes, shipping, totalCost: totalCost + shipping,
-    supplierId: stockInSupplierId,
-    supplierName: document.getElementById('stock-in-supplier-display').textContent,
-    items: orderItems,
+    orderNum, date, notes: notes || '', shipping, totalCost: totalCost + shipping,
+    supplierId: stockInSupplierId || '',
+    supplierName: document.getElementById('stock-in-supplier-display').textContent || '',
+    items: cleanOrderItems,
     createdAt: Date.now(),
-    createdBy: userDisplayName || currentUser.email,
-    createdByEmail: currentUser.email
+    createdBy: userDisplayName || currentUser.email || '',
+    createdByEmail: currentUser.email || ''
   };
 
   try {
@@ -1484,14 +1493,23 @@ window.confirmStockOut = async () => {
   const customer = customers.find(c => c.id === stockOutCustomerId);
   const orderNum = generateOrderNumber('O', date);
 
+  // Clean items - remove undefined fields to avoid Firestore invalid-argument error
+  const cleanItems = stockOutItems.map(i => {
+    const item = {};
+    for (const [k, v] of Object.entries(i)) {
+      if (v !== undefined) item[k] = v;
+    }
+    return item;
+  });
+
   const orderData = {
-    orderNum, date, notes, totalAmount, totalCost,
+    orderNum, date, notes: notes || '', totalAmount, totalCost,
     customerId: stockOutCustomerId,
     customerName: customer?.name || '',
-    items: stockOutItems.map(i => ({ ...i })),
+    items: cleanItems,
     createdAt: Date.now(),
-    createdBy: userDisplayName || currentUser.email,
-    createdByEmail: currentUser.email
+    createdBy: userDisplayName || currentUser.email || '',
+    createdByEmail: currentUser.email || ''
   };
 
   try {
