@@ -279,6 +279,7 @@ async function loadAllData() {
   renderProductList();
   renderCustomerList();
   checkAutoArchive();
+  await loadProxyData();
   renderExpenseList();
   checkBackupReminder();
   hideLoadingScreen();
@@ -313,6 +314,9 @@ window.navigate = (page) => {
   // Page-specific init
   if (page === 'home') updateHomePage();
   if (page === 'products') { window._showingArchivedProducts = false; renderProductList(); }
+  if (page === 'proxy-orders') { window._proxyTab = window._proxyTab || 'pending'; renderProxyOrders(); }
+  if (page === 'add-proxy-order') { window._proxyCustomerId = null; window._proxyCustomerName = null; renderProxyOrderForm(window._proxyFormMode || 'A'); }
+  if (page === 'proxy-settings') renderProxySettings();
   if (page === 'customers') { renderCustomerList(); }
   if (page === 'expenses') renderExpenseList();
   if (page === 'reports') renderReports();
@@ -4184,3 +4188,509 @@ function formatDate(date) {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
+
+// ==================== 代購訂單 ====================
+
+let proxyOrders = [];
+let proxySettings = {
+  rmbTiers: [
+    { label: '200以下', maxRmb: 200, rate: 5.0 },
+    { label: '200~499', maxRmb: 500, rate: 5.0 },
+    { label: '500~999', maxRmb: 1000, rate: 5.0 },
+    { label: '1000以上', maxRmb: Infinity, rate: 5.0 }
+  ],
+  shipTiers: [
+    { label: '1~6公斤', maxKg: 6, price: 80 },
+    { label: '7~10公斤', maxKg: 10, price: 75 },
+    { label: '11公斤以上', maxKg: Infinity, price: 70 }
+  ]
+};
+
+function getProxyRmbRate(rmb) {
+  for (const t of proxySettings.rmbTiers) {
+    if (rmb < t.maxRmb) return t.rate;
+  }
+  return proxySettings.rmbTiers[proxySettings.rmbTiers.length - 1].rate;
+}
+
+function getProxyShipPrice(kg) {
+  for (const t of proxySettings.shipTiers) {
+    if (kg <= t.maxKg) return t.price;
+  }
+  return proxySettings.shipTiers[proxySettings.shipTiers.length - 1].price;
+}
+
+function generateProxyOrderNum(date) {
+  const d = date.replace(/-/g, '');
+  const seq = (proxyOrders.filter(o => o.date === date).length + 1).toString().padStart(2, '0');
+  return `G${d}${seq}`;
+}
+
+// Load proxy data
+async function loadProxyData() {
+  try {
+    const [ordersSnap, settingsSnap] = await Promise.allSettled([
+      getDocs(collection(db, 'users', getDataUid(), 'proxyOrders')),
+      getDoc(doc(db, 'users', getDataUid(), 'proxySettings', 'main'))
+    ]);
+    if (ordersSnap.status === 'fulfilled') {
+      proxyOrders = ordersSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    if (settingsSnap.status === 'fulfilled' && settingsSnap.value.exists()) {
+      proxySettings = { ...proxySettings, ...settingsSnap.value.data() };
+    }
+  } catch(e) { console.error('loadProxyData error', e); }
+}
+
+// ---- 代購設定頁面 ----
+function renderProxySettings() {
+  const el = document.getElementById('proxy-settings-content');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="form-card" style="margin-bottom:12px">
+      <div class="section-label" style="padding:0 0 8px">商品匯率（按人民幣金額）</div>
+      ${proxySettings.rmbTiers.map((t, i) => `
+        <div class="form-row" style="padding:10px 0;border-bottom:0.5px solid var(--border)">
+          <div style="flex:1;color:var(--text2);font-size:14px">${t.label}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--text4);font-size:13px">1人民幣＝</span>
+            <input type="number" step="0.01" value="${t.rate}"
+              onchange="proxySettings.rmbTiers[${i}].rate=parseFloat(this.value)||0;saveProxySettings()"
+              style="width:70px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:right">
+            <span style="color:var(--text4);font-size:13px">台幣</span>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="form-card">
+      <div class="section-label" style="padding:0 0 8px">運費單價（按重量）</div>
+      ${proxySettings.shipTiers.map((t, i) => `
+        <div class="form-row" style="padding:10px 0;border-bottom:0.5px solid var(--border)">
+          <div style="flex:1;color:var(--text2);font-size:14px">${t.label}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="number" step="1" value="${t.price}"
+              onchange="proxySettings.shipTiers[${i}].price=parseFloat(this.value)||0;saveProxySettings()"
+              style="width:70px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:right">
+            <span style="color:var(--text4);font-size:13px">元/公斤</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function saveProxySettings() {
+  try {
+    await setDoc(doc(db, 'users', getDataUid(), 'proxySettings', 'main'), proxySettings);
+  } catch(e) { showToast('設定儲存失敗'); }
+}
+
+// ---- 代購訂單列表 ----
+function renderProxyOrders() {
+  const el = document.getElementById('proxy-order-list');
+  if (!el) return;
+  const tab = window._proxyTab || 'pending';
+
+  // Update tab UI
+  const pendingTab = document.getElementById('proxy-tab-pending');
+  const doneTab = document.getElementById('proxy-tab-done');
+  if (pendingTab) { pendingTab.style.background = tab === 'pending' ? 'var(--blue)' : 'var(--bg2)'; pendingTab.style.color = tab === 'pending' ? 'white' : 'var(--text3)'; }
+  if (doneTab) { doneTab.style.background = tab === 'done' ? 'var(--blue)' : 'var(--bg2)'; doneTab.style.color = tab === 'done' ? 'white' : 'var(--text3)'; }
+
+  const filtered = proxyOrders.filter(o => tab === 'pending' ? o.status !== 'done' : o.status === 'done');
+  filtered.sort((a, b) => b.createdAt - a.createdAt);
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div style="text-align:center;color:var(--text4);padding:40px 0;font-size:14px">${tab === 'pending' ? '沒有待入庫的訂單' : '沒有已完成的訂單'}</div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(o => {
+    const modeLabel = o.mode === 'A' ? '明細報價' : '總額收款';
+    const modeColor = o.mode === 'A' ? 'var(--blue)' : 'var(--amber)';
+    const profit = o.status === 'done' ? (o.finalProfit || 0) : null;
+    const customerName = customers.find(c => c.id === o.customerId)?.name || o.customerName || '未知客人';
+    return `
+      <div class="form-card" style="margin-bottom:10px;cursor:pointer" onclick="showProxyOrderDetail('${o.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:13px;color:var(--text4)">${o.orderNum}</div>
+          <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:${o.status==='done'?'var(--green-bg)':'var(--amber-bg)'};color:${o.status==='done'?'var(--green)':'var(--amber)'}">
+            ${o.status === 'done' ? '已完成' : '待入庫'}
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:3px">${customerName}</div>
+            <div style="font-size:12px;color:var(--text4)">${o.date} ・ <span style="color:${modeColor}">${modeLabel}</span></div>
+            ${o.notes ? `<div style="font-size:12px;color:var(--text4);margin-top:3px">${o.notes}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            ${o.mode === 'A' ? `<div style="font-size:15px;font-weight:600;color:var(--text2)">¥${o.rmbAmount || 0}</div>` : ''}
+            ${profit !== null ? `<div style="font-size:14px;font-weight:600;color:${profit>=0?'var(--green)':'var(--red)'}">利潤 $${profit}</div>` : '<div style="font-size:12px;color:var(--text4)">暫估利潤待補登</div>'}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ---- 新增訂單表單 ----
+function renderProxyOrderForm(mode) {
+  const today = formatDate(new Date());
+  const el = document.getElementById('proxy-order-form-content');
+  if (!el) return;
+
+  window._proxyFormMode = mode;
+
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div id="proxy-form-tab-A" onclick="renderProxyOrderForm('A')"
+        style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;cursor:pointer;background:${mode==='A'?'var(--blue)':'var(--bg2)'};color:${mode==='A'?'white':'var(--text3)'}">A 明細報價</div>
+      <div id="proxy-form-tab-B" onclick="renderProxyOrderForm('B')"
+        style="flex:1;text-align:center;padding:9px;border-radius:10px;font-size:14px;cursor:pointer;background:${mode==='B'?'var(--amber)':'var(--bg2)'};color:${mode==='B'?'white':'var(--text3)'}">B 總額收款</div>
+    </div>
+
+    <div class="form-card" style="margin-bottom:12px">
+      <div class="form-row" onclick="showDatePickerFor('proxy-order-date-display')">
+        <div style="color:var(--text3);font-size:15px;flex:1">下單日期<span style="color:var(--red)">*</span></div>
+        <div style="color:var(--text2);font-size:15px" id="proxy-order-date-display" data-value="${today}">${today}</div>
+        <i class="ti ti-calendar" style="color:var(--text4);margin-left:6px"></i>
+      </div>
+      <div class="form-row" onclick="showCustomerPickerForProxy()">
+        <div style="color:var(--text3);font-size:15px;flex:1">客人<span style="color:var(--red)">*</span></div>
+        <div style="color:var(--text4);font-size:15px" id="proxy-customer-display" data-value="">選擇客人</div>
+        <i class="ti ti-chevron-right" style="color:var(--text4)"></i>
+      </div>
+      <div class="form-row">
+        <div style="color:var(--text3);font-size:15px;flex:1">備註</div>
+        <input type="text" id="proxy-notes" placeholder="商品描述（選填）"
+          style="background:none;border:none;outline:none;color:var(--text2);font-size:15px;text-align:right;flex:1">
+      </div>
+    </div>
+
+    ${mode === 'A' ? `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:10px">商品金額</div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">人民幣金額</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4);font-size:13px">¥</span>
+          <input type="number" id="proxy-rmb" placeholder="0" oninput="updateProxyCalcA()"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">匯率</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" id="proxy-rate-display" placeholder="0.00" oninput="updateProxyCalcA()"
+            style="width:80px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+          <span style="color:var(--text4);font-size:13px">台幣/人民幣</span>
+        </div>
+      </div>
+      <div class="form-row" style="padding:8px 0;background:var(--bg2);border-radius:8px;margin-top:4px">
+        <div style="color:var(--text3);font-size:14px;flex:1">系統建議報價</div>
+        <div style="color:var(--blue);font-size:16px;font-weight:600" id="proxy-suggested-price">—</div>
+      </div>
+      <div class="form-row" style="padding:8px 0;margin-top:6px">
+        <div style="color:var(--text3);font-size:15px;flex:1">實收第一筆金額<span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4);font-size:13px">$</span>
+          <input type="number" id="proxy-received1" placeholder="0"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">你實際付的台幣成本<span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4);font-size:13px">$</span>
+          <input type="number" id="proxy-cost1" placeholder="0"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+    </div>` : `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:10px">商品成本</div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">你實際付的台幣成本<span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4);font-size:13px">$</span>
+          <input type="number" id="proxy-cost1" placeholder="0"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+    </div>`}
+
+    <div style="color:var(--text4);font-size:12px;text-align:center;margin:8px 0 4px">貨到後再回來補運費資料</div>
+    <button class="submit-btn" onclick="confirmAddProxyOrder()">建立訂單</button>`;
+
+  // Set rate from settings based on current RMB input
+  updateProxyCalcA();
+}
+
+window.updateProxyCalcA = () => {
+  const rmb = parseFloat(document.getElementById('proxy-rmb')?.value) || 0;
+  const rateInput = document.getElementById('proxy-rate-display');
+  const suggestedEl = document.getElementById('proxy-suggested-price');
+  if (!rateInput || !suggestedEl) return;
+
+  // Auto-fill rate from settings if empty
+  if (!rateInput.value && rmb > 0) {
+    rateInput.value = getProxyRmbRate(rmb).toFixed(2);
+  }
+  // Update rate when rmb changes (tier might change)
+  if (rmb > 0) rateInput.value = getProxyRmbRate(rmb).toFixed(2);
+
+  const rate = parseFloat(rateInput.value) || 0;
+  const suggested = rmb * rate;
+  suggestedEl.textContent = suggested > 0 ? `$${Math.round(suggested)}` : '—';
+};
+
+window.showCustomerPickerForProxy = () => {
+  showCustomerPickerModal((c) => {
+    window._proxyCustomerId = c.id;
+    window._proxyCustomerName = c.name;
+    const el = document.getElementById('proxy-customer-display');
+    if (el) { el.textContent = c.name; el.style.color = 'var(--text2)'; el.dataset.value = c.id; }
+  });
+};
+
+window.confirmAddProxyOrder = async () => {
+  const mode = window._proxyFormMode || 'A';
+  const date = document.getElementById('proxy-order-date-display')?.dataset.value;
+  const customerId = window._proxyCustomerId;
+  if (!date || !customerId) { showToast('請填寫日期和客人'); return; }
+
+  const cost1 = parseFloat(document.getElementById('proxy-cost1')?.value) || 0;
+  if (!cost1) { showToast('請填寫台幣成本'); return; }
+
+  const orderNum = generateProxyOrderNum(date);
+  const notes = document.getElementById('proxy-notes')?.value || '';
+
+  const orderData = {
+    orderNum, date, mode, notes,
+    customerId,
+    customerName: window._proxyCustomerName || '',
+    cost1,
+    status: 'pending',
+    createdAt: Date.now()
+  };
+
+  if (mode === 'A') {
+    const rmb = parseFloat(document.getElementById('proxy-rmb')?.value) || 0;
+    const rate = parseFloat(document.getElementById('proxy-rate-display')?.value) || 0;
+    const received1 = parseFloat(document.getElementById('proxy-received1')?.value) || 0;
+    if (!rmb || !received1) { showToast('請填寫人民幣金額和實收金額'); return; }
+    orderData.rmbAmount = rmb;
+    orderData.rmbRate = rate;
+    orderData.suggestedPrice = Math.round(rmb * rate);
+    orderData.received1 = received1;
+  }
+
+  try {
+    const ref = await addDoc(collection(db, 'users', getDataUid(), 'proxyOrders'), orderData);
+    proxyOrders.push({ id: ref.id, ...orderData });
+    showToast('代購訂單已建立');
+    window._proxyCustomerId = null;
+    window._proxyCustomerName = null;
+    navigate('proxy-orders');
+  } catch(e) { showToast('建立失敗：' + e.message); }
+};
+
+// ---- 訂單詳細 / 補登運費 ----
+window.showProxyOrderDetail = (orderId) => {
+  const o = proxyOrders.find(x => x.id === orderId);
+  if (!o) return;
+  window._currentProxyOrderId = orderId;
+  const el = document.getElementById('proxy-order-detail-content');
+  if (!el) return;
+  navigate('proxy-order-detail');
+
+  const customerName = customers.find(c => c.id === o.customerId)?.name || o.customerName || '';
+  const isDone = o.status === 'done';
+
+  let profitHtml = '';
+  if (isDone) {
+    const profit = o.finalProfit || 0;
+    profitHtml = `
+      <div class="form-card" style="margin-bottom:12px;background:${profit>=0?'var(--green-bg)':'var(--red-bg)'}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="color:var(--text3);font-size:15px">最終利潤</div>
+          <div style="font-size:22px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'}">$${profit}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <div style="color:var(--text4);font-size:12px">總收入</div>
+          <div style="color:var(--text2);font-size:13px">$${o.totalReceived || 0}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <div style="color:var(--text4);font-size:12px">總成本</div>
+          <div style="color:var(--text2);font-size:13px">$${o.totalCost || 0}</div>
+        </div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <div style="color:var(--text4);font-size:13px">${o.orderNum}</div>
+        <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:${isDone?'var(--green-bg)':'var(--amber-bg)'};color:${isDone?'var(--green)':'var(--amber)'}">${isDone?'已完成':'待入庫'}</div>
+      </div>
+      <div style="color:var(--text2);font-size:17px;font-weight:600;margin-bottom:4px">${customerName}</div>
+      <div style="color:var(--text4);font-size:13px">${o.date} ・ ${o.mode==='A'?'明細報價':'總額收款'}</div>
+      ${o.notes ? `<div style="color:var(--text4);font-size:13px;margin-top:4px">${o.notes}</div>` : ''}
+    </div>
+
+    ${o.mode === 'A' ? `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:8px">商品</div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">人民幣金額</span><span style="color:var(--text2)">¥${o.rmbAmount}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">匯率</span><span style="color:var(--text2)">${o.rmbRate}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">建議報價</span><span style="color:var(--blue)">$${o.suggestedPrice}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">實收第一筆</span><span style="color:var(--text2);font-weight:600">$${o.received1}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">你的商品成本</span><span style="color:var(--red)">$${o.cost1}</span></div>
+    </div>` : `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:8px">商品</div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">你的商品成本</span><span style="color:var(--red)">$${o.cost1}</span></div>
+    </div>`}
+
+    ${isDone && o.mode === 'A' ? `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:8px">運費</div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">重量</span><span style="color:var(--text2)">${o.weight} 公斤</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">建議收客人運費</span><span style="color:var(--blue)">$${o.suggestedShip}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">實收運費</span><span style="color:var(--text2);font-weight:600">$${o.receivedShip}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">你的運費成本</span><span style="color:var(--red)">$${o.shipCost}</span></div>
+    </div>` : isDone && o.mode === 'B' ? `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:8px">運費</div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">你的運費成本</span><span style="color:var(--red)">$${o.shipCost}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--text4);font-size:13px">實收總額</span><span style="color:var(--text2);font-weight:600">$${o.receivedTotal}</span></div>
+    </div>` : ''}
+
+    ${profitHtml}
+
+    ${!isDone ? `<button class="submit-btn" onclick="showProxyShipForm('${o.id}')">📦 貨到補登運費</button>` : ''}
+    <div style="margin-top:8px">
+      <button class="submit-btn red" onclick="deleteProxyOrder('${o.id}')">刪除訂單</button>
+    </div>`;
+};
+
+// ---- 補登運費 ----
+window.showProxyShipForm = (orderId) => {
+  const o = proxyOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const el = document.getElementById('proxy-order-detail-content');
+
+  el.innerHTML = `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text2);font-weight:600;margin-bottom:4px">${o.orderNum} 補登運費</div>
+      <div style="color:var(--text4);font-size:13px">${customers.find(c=>c.id===o.customerId)?.name || o.customerName}</div>
+    </div>
+
+    ${o.mode === 'A' ? `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:10px">運費資料</div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">重量（公斤）</div>
+        <input type="number" id="proxy-weight" placeholder="0.0" step="0.1" oninput="updateProxyShipCalc()"
+          style="width:80px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+      </div>
+      <div class="form-row" style="padding:8px 0;background:var(--bg2);border-radius:8px;margin:4px 0">
+        <div style="color:var(--text3);font-size:14px;flex:1">建議收客人運費</div>
+        <div style="color:var(--blue);font-size:16px;font-weight:600" id="proxy-suggested-ship">—</div>
+      </div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">實收運費<span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4)">$</span>
+          <input type="number" id="proxy-received-ship" placeholder="0"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">你的台幣運費成本<span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4)">$</span>
+          <input type="number" id="proxy-ship-cost" placeholder="0"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+    </div>` : `
+    <div class="form-card" style="margin-bottom:12px">
+      <div style="color:var(--text4);font-size:12px;margin-bottom:10px">收款與運費</div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">你的台幣運費成本<span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4)">$</span>
+          <input type="number" id="proxy-ship-cost" placeholder="0"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+      <div class="form-row" style="padding:8px 0">
+        <div style="color:var(--text3);font-size:15px;flex:1">實收總額<span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text4)">$</span>
+          <input type="number" id="proxy-received-total" placeholder="0"
+            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+        </div>
+      </div>
+    </div>`}
+
+    <button class="submit-btn" onclick="confirmProxyShip('${orderId}')">確認完成訂單</button>
+    <div style="margin-top:8px">
+      <button class="submit-btn" style="background:var(--bg2);color:var(--text3)" onclick="showProxyOrderDetail('${orderId}')">取消</button>
+    </div>`;
+};
+
+window.updateProxyShipCalc = () => {
+  const kg = parseFloat(document.getElementById('proxy-weight')?.value) || 0;
+  const el = document.getElementById('proxy-suggested-ship');
+  if (!el) return;
+  if (kg > 0) {
+    const price = getProxyShipPrice(kg);
+    el.textContent = `$${Math.round(price * Math.ceil(kg))}`;
+  } else {
+    el.textContent = '—';
+  }
+};
+
+window.confirmProxyShip = async (orderId) => {
+  const o = proxyOrders.find(x => x.id === orderId);
+  if (!o) return;
+
+  const shipCost = parseFloat(document.getElementById('proxy-ship-cost')?.value) || 0;
+  if (!shipCost) { showToast('請填寫運費成本'); return; }
+
+  let updateData = { status: 'done', shipCost };
+
+  if (o.mode === 'A') {
+    const weight = parseFloat(document.getElementById('proxy-weight')?.value) || 0;
+    const receivedShip = parseFloat(document.getElementById('proxy-received-ship')?.value) || 0;
+    const suggestedShip = weight > 0 ? Math.round(getProxyShipPrice(weight) * Math.ceil(weight)) : 0;
+    if (!weight || !receivedShip) { showToast('請填寫重量和實收運費'); return; }
+    const totalReceived = (o.received1 || 0) + receivedShip;
+    const totalCost = (o.cost1 || 0) + shipCost;
+    updateData = { ...updateData, weight, receivedShip, suggestedShip, totalReceived, totalCost, finalProfit: totalReceived - totalCost };
+  } else {
+    const receivedTotal = parseFloat(document.getElementById('proxy-received-total')?.value) || 0;
+    if (!receivedTotal) { showToast('請填寫實收總額'); return; }
+    const totalCost = (o.cost1 || 0) + shipCost;
+    updateData = { ...updateData, receivedTotal, totalReceived: receivedTotal, totalCost, finalProfit: receivedTotal - totalCost };
+  }
+
+  try {
+    await updateDoc(doc(db, 'users', getDataUid(), 'proxyOrders', orderId), updateData);
+    const idx = proxyOrders.findIndex(x => x.id === orderId);
+    if (idx > -1) proxyOrders[idx] = { ...proxyOrders[idx], ...updateData };
+    showToast('訂單已完成！');
+    showProxyOrderDetail(orderId);
+  } catch(e) { showToast('更新失敗：' + e.message); }
+};
+
+// ---- 刪除訂單 ----
+window.deleteProxyOrder = (orderId) => {
+  showConfirm('確定要刪除這筆代購訂單嗎？', async () => {
+    try {
+      await deleteDoc(doc(db, 'users', getDataUid(), 'proxyOrders', orderId));
+      proxyOrders = proxyOrders.filter(x => x.id !== orderId);
+      showToast('已刪除');
+      navigate('proxy-orders');
+    } catch(e) { showToast('刪除失敗：' + e.message); }
+  });
+};

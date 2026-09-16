@@ -195,6 +195,20 @@
                 </div>
                 <div class="menu-label">支出管理</div>
               </div>
+              <div class="menu-btn" onclick="navigate('proxy-orders')">
+                <div class="menu-ill" style="background:#e8f0ff;">
+                  <svg width="38" height="38" viewBox="0 0 44 44">
+                    <rect x="7" y="10" width="30" height="24" rx="5" fill="#3a6ecc"/>
+                    <rect x="7" y="10" width="30" height="9" rx="5" fill="#5a8eec"/>
+                    <rect x="7" y="15" width="30" height="4" fill="#5a8eec"/>
+                    <rect x="12" y="24" width="10" height="2.5" rx="1.2" fill="#b8d0ff"/>
+                    <rect x="12" y="28" width="7" height="2.5" rx="1.2" fill="#b8d0ff" opacity="0.6"/>
+                    <circle cx="33" cy="31" r="6" fill="#ffc840"/>
+                    <text x="33" y="35" text-anchor="middle" font-size="8" fill="#7c4a00" font-weight="bold">¥</text>
+                  </svg>
+                </div>
+                <div class="menu-label">代購訂單</div>
+              </div>
               <div class="menu-btn owner-only" onclick="navigate('reports')">
                 <div class="menu-ill" style="background:#ede0ff;">
                   <svg width="38" height="38" viewBox="0 0 44 44">
@@ -1104,6 +1118,55 @@
             <div style="width:36px"></div>
           </div>
           <div class="page-content" id="stock-out-detail-content"></div>
+        </div>
+
+        <!-- 代購訂單列表 -->
+        <div class="page" id="page-proxy-orders">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('home')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">代購訂單</span>
+            <button class="icon-btn" onclick="navigate('proxy-settings')"><i class="ti ti-settings"></i></button>
+          </div>
+          <div class="page-content">
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+              <div id="proxy-tab-pending" onclick="window._proxyTab='pending';renderProxyOrders()"
+                style="flex:1;text-align:center;padding:8px;border-radius:10px;font-size:14px;cursor:pointer">待入庫</div>
+              <div id="proxy-tab-done" onclick="window._proxyTab='done';renderProxyOrders()"
+                style="flex:1;text-align:center;padding:8px;border-radius:10px;font-size:14px;cursor:pointer">已完成</div>
+            </div>
+            <div id="proxy-order-list"></div>
+            <button class="fab" onclick="navigate('add-proxy-order')"><i class="ti ti-plus"></i></button>
+          </div>
+        </div>
+
+        <!-- 新增/編輯代購訂單 -->
+        <div class="page" id="page-add-proxy-order">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('proxy-orders')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title" id="proxy-order-form-title">新增代購訂單</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="proxy-order-form-content"></div>
+        </div>
+
+        <!-- 代購訂單詳細/補登 -->
+        <div class="page" id="page-proxy-order-detail">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('proxy-orders')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">代購訂單詳細</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="proxy-order-detail-content"></div>
+        </div>
+
+        <!-- 代購設定 -->
+        <div class="page" id="page-proxy-settings">
+          <div class="subpage-topbar">
+            <button class="icon-btn" onclick="navigate('proxy-orders')"><i class="ti ti-arrow-left"></i></button>
+            <span class="subpage-title">代購設定</span>
+            <div style="width:36px"></div>
+          </div>
+          <div class="page-content" id="proxy-settings-content"></div>
         </div>
 
       </div>
