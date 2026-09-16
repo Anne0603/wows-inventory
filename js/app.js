@@ -4324,14 +4324,8 @@ function renderProxyOrders() {
   // Update tab UI
   const pendingTab = document.getElementById('proxy-tab-pending');
   const doneTab = document.getElementById('proxy-tab-done');
-  if (pendingTab) {
-    pendingTab.style.background = tab === 'pending' ? 'var(--blue)' : 'var(--bg2)';
-    pendingTab.style.color = tab === 'pending' ? 'white' : 'var(--text3)';
-  }
-  if (doneTab) {
-    doneTab.style.background = tab === 'done' ? 'var(--blue)' : 'var(--bg2)';
-    doneTab.style.color = tab === 'done' ? 'white' : 'var(--text3)';
-  }
+  if (pendingTab) pendingTab.classList.toggle('active', tab === 'pending');
+  if (doneTab) doneTab.classList.toggle('active', tab === 'done');
 
   const filtered = proxyOrders.filter(o => tab === 'pending' ? o.status !== 'done' : o.status === 'done');
   filtered.sort((a, b) => b.createdAt - a.createdAt);
