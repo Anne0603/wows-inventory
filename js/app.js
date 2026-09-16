@@ -4250,26 +4250,20 @@ function renderProxySettings() {
   const rmbRows = proxySettings.rmbTiers.map((t, i) => {
     const isLast = i === proxySettings.rmbTiers.length - 1;
     const prevMax = i === 0 ? 0 : proxySettings.rmbTiers[i-1].maxRmb;
+    const rangeLabel = isLast
+      ? `¥${prevMax} 以上`
+      : `¥${prevMax} ~ ¥<input type="number" value="${t.maxRmb}" min="1"
+          onchange="proxySettings.rmbTiers[${i}].maxRmb=parseInt(this.value)||0;saveProxySettings();renderProxySettings()"
+          style="width:72px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:5px 8px;color:var(--text2);font-size:15px;text-align:center;display:inline-block">`;
     return `
-      <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <span style="color:var(--text4);font-size:13px">人民幣</span>
-          ${i === 0
-            ? `<span style="color:var(--text3);font-size:13px">0</span><span style="color:var(--text4);font-size:13px">~</span>`
-            : `<span style="color:var(--text3);font-size:13px">${prevMax}</span><span style="color:var(--text4);font-size:13px">~</span>`}
-          ${isLast
-            ? `<span style="color:var(--text3);font-size:13px">以上</span>`
-            : `<input type="number" value="${t.maxRmb}" min="1"
-                onchange="proxySettings.rmbTiers[${i}].maxRmb=parseInt(this.value)||0;proxySettings.rmbTiers[${i}].label=updateRmbLabel(${i});saveProxySettings();renderProxySettings()"
-                style="width:80px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:center">
-              <span style="color:var(--text4);font-size:13px">以下</span>`}
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="color:var(--text4);font-size:14px;white-space:nowrap">1 人民幣 ＝</span>
+      <div style="padding:16px 0;border-bottom:0.5px solid var(--border)">
+        <div style="color:var(--text4);font-size:12px;margin-bottom:10px">人民幣金額：${rangeLabel}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="color:var(--text3);font-size:14px;white-space:nowrap">1 人民幣 ＝</span>
           <input type="number" step="0.01" value="${t.rate}"
             onchange="proxySettings.rmbTiers[${i}].rate=parseFloat(this.value)||0;saveProxySettings()"
-            style="flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
-          <span style="color:var(--text4);font-size:14px;white-space:nowrap">台幣</span>
+            style="flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text2);font-size:20px;text-align:right;font-weight:700;outline:none">
+          <span style="color:var(--text3);font-size:14px;white-space:nowrap">台幣</span>
         </div>
       </div>`;
   }).join('');
@@ -4277,25 +4271,19 @@ function renderProxySettings() {
   const shipRows = proxySettings.shipTiers.map((t, i) => {
     const isLast = i === proxySettings.shipTiers.length - 1;
     const prevMax = i === 0 ? 0 : proxySettings.shipTiers[i-1].maxKg;
+    const rangeLabel = isLast
+      ? `${prevMax} 公斤以上`
+      : `${prevMax} ~ <input type="number" value="${t.maxKg}" min="1"
+          onchange="proxySettings.shipTiers[${i}].maxKg=parseInt(this.value)||0;saveProxySettings();renderProxySettings()"
+          style="width:60px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:5px 8px;color:var(--text2);font-size:15px;text-align:center;display:inline-block"> 公斤`;
     return `
-      <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-          <span style="color:var(--text4);font-size:13px">公斤</span>
-          ${i === 0
-            ? `<span style="color:var(--text3);font-size:13px">0</span><span style="color:var(--text4);font-size:13px">~</span>`
-            : `<span style="color:var(--text3);font-size:13px">${prevMax}</span><span style="color:var(--text4);font-size:13px">~</span>`}
-          ${isLast
-            ? `<span style="color:var(--text3);font-size:13px">以上</span>`
-            : `<input type="number" value="${t.maxKg}" min="1"
-                onchange="proxySettings.shipTiers[${i}].maxKg=parseInt(this.value)||0;proxySettings.shipTiers[${i}].label=updateShipLabel(${i});saveProxySettings();renderProxySettings()"
-                style="width:60px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:center">
-              <span style="color:var(--text4);font-size:13px">公斤以下</span>`}
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
+      <div style="padding:16px 0;border-bottom:0.5px solid var(--border)">
+        <div style="color:var(--text4);font-size:12px;margin-bottom:10px">重量：${rangeLabel}</div>
+        <div style="display:flex;align-items:center;gap:10px">
           <input type="number" step="1" value="${t.price}"
             onchange="proxySettings.shipTiers[${i}].price=parseFloat(this.value)||0;saveProxySettings()"
-            style="flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
-          <span style="color:var(--text4);font-size:14px;white-space:nowrap">元 / 公斤</span>
+            style="flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text2);font-size:20px;text-align:right;font-weight:700;outline:none">
+          <span style="color:var(--text3);font-size:14px;white-space:nowrap">元 / 公斤</span>
         </div>
       </div>`;
   }).join('');
@@ -4304,7 +4292,7 @@ function renderProxySettings() {
     <div class="section-label">商品匯率（按人民幣金額）</div>
     <div class="form-card" style="margin-bottom:20px">${rmbRows}</div>
     <div class="section-label">運費單價（按重量）</div>
-    <div class="form-card">${shipRows}</div>`;
+    <div class="form-card" style="margin-bottom:20px">${shipRows}</div>`;
 }
 
 function updateRmbLabel(i) {
@@ -4336,8 +4324,14 @@ function renderProxyOrders() {
   // Update tab UI
   const pendingTab = document.getElementById('proxy-tab-pending');
   const doneTab = document.getElementById('proxy-tab-done');
-  if (pendingTab) { pendingTab.classList.toggle('active', tab === 'pending'); }
-  if (doneTab) { doneTab.classList.toggle('active', tab === 'done'); }
+  if (pendingTab) {
+    pendingTab.style.background = tab === 'pending' ? 'var(--blue)' : 'var(--bg2)';
+    pendingTab.style.color = tab === 'pending' ? 'white' : 'var(--text3)';
+  }
+  if (doneTab) {
+    doneTab.style.background = tab === 'done' ? 'var(--blue)' : 'var(--bg2)';
+    doneTab.style.color = tab === 'done' ? 'white' : 'var(--text3)';
+  }
 
   const filtered = proxyOrders.filter(o => tab === 'pending' ? o.status !== 'done' : o.status === 'done');
   filtered.sort((a, b) => b.createdAt - a.createdAt);
