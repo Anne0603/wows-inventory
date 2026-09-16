@@ -1129,10 +1129,8 @@
           </div>
           <div class="page-content">
             <div style="display:flex;gap:8px;margin-bottom:16px">
-              <div id="proxy-tab-pending" onclick="window._proxyTab='pending';renderProxyOrders()"
-                style="flex:1;text-align:center;padding:10px;border-radius:12px;font-size:15px;cursor:pointer;font-weight:500">待入庫</div>
-              <div id="proxy-tab-done" onclick="window._proxyTab='done';renderProxyOrders()"
-                style="flex:1;text-align:center;padding:10px;border-radius:12px;font-size:15px;cursor:pointer;font-weight:500">已完成</div>
+              <div id="proxy-tab-pending" onclick="window._proxyTab='pending';renderProxyOrders()" class="proxy-tab">待入庫</div>
+              <div id="proxy-tab-done" onclick="window._proxyTab='done';renderProxyOrders()" class="proxy-tab">已完成</div>
             </div>
             <div id="proxy-order-list"></div>
             <button class="fab" onclick="navigate('add-proxy-order')"><i class="ti ti-plus"></i></button>

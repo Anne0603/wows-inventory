@@ -4246,34 +4246,79 @@ async function loadProxyData() {
 function renderProxySettings() {
   const el = document.getElementById('proxy-settings-content');
   if (!el) return;
+
+  const rmbRows = proxySettings.rmbTiers.map((t, i) => {
+    const isLast = i === proxySettings.rmbTiers.length - 1;
+    const prevMax = i === 0 ? 0 : proxySettings.rmbTiers[i-1].maxRmb;
+    return `
+      <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <span style="color:var(--text4);font-size:13px">人民幣</span>
+          ${i === 0
+            ? `<span style="color:var(--text3);font-size:13px">0</span><span style="color:var(--text4);font-size:13px">~</span>`
+            : `<span style="color:var(--text3);font-size:13px">${prevMax}</span><span style="color:var(--text4);font-size:13px">~</span>`}
+          ${isLast
+            ? `<span style="color:var(--text3);font-size:13px">以上</span>`
+            : `<input type="number" value="${t.maxRmb}" min="1"
+                onchange="proxySettings.rmbTiers[${i}].maxRmb=parseInt(this.value)||0;proxySettings.rmbTiers[${i}].label=updateRmbLabel(${i});saveProxySettings();renderProxySettings()"
+                style="width:80px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:center">
+              <span style="color:var(--text4);font-size:13px">以下</span>`}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--text4);font-size:14px;white-space:nowrap">1 人民幣 ＝</span>
+          <input type="number" step="0.01" value="${t.rate}"
+            onchange="proxySettings.rmbTiers[${i}].rate=parseFloat(this.value)||0;saveProxySettings()"
+            style="flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
+          <span style="color:var(--text4);font-size:14px;white-space:nowrap">台幣</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  const shipRows = proxySettings.shipTiers.map((t, i) => {
+    const isLast = i === proxySettings.shipTiers.length - 1;
+    const prevMax = i === 0 ? 0 : proxySettings.shipTiers[i-1].maxKg;
+    return `
+      <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <span style="color:var(--text4);font-size:13px">公斤</span>
+          ${i === 0
+            ? `<span style="color:var(--text3);font-size:13px">0</span><span style="color:var(--text4);font-size:13px">~</span>`
+            : `<span style="color:var(--text3);font-size:13px">${prevMax}</span><span style="color:var(--text4);font-size:13px">~</span>`}
+          ${isLast
+            ? `<span style="color:var(--text3);font-size:13px">以上</span>`
+            : `<input type="number" value="${t.maxKg}" min="1"
+                onchange="proxySettings.shipTiers[${i}].maxKg=parseInt(this.value)||0;proxySettings.shipTiers[${i}].label=updateShipLabel(${i});saveProxySettings();renderProxySettings()"
+                style="width:60px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:center">
+              <span style="color:var(--text4);font-size:13px">公斤以下</span>`}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" step="1" value="${t.price}"
+            onchange="proxySettings.shipTiers[${i}].price=parseFloat(this.value)||0;saveProxySettings()"
+            style="flex:1;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
+          <span style="color:var(--text4);font-size:14px;white-space:nowrap">元 / 公斤</span>
+        </div>
+      </div>`;
+  }).join('');
+
   el.innerHTML = `
     <div class="section-label">商品匯率（按人民幣金額）</div>
-    <div class="form-card" style="margin-bottom:20px">
-      ${proxySettings.rmbTiers.map((t, i) => `
-        <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
-          <div style="color:var(--text3);font-size:12px;margin-bottom:8px">${t.label}</div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--text4);font-size:14px;white-space:nowrap">1 人民幣 ＝</span>
-            <input type="number" step="0.01" value="${t.rate}"
-              onchange="proxySettings.rmbTiers[${i}].rate=parseFloat(this.value)||0;saveProxySettings()"
-              style="flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
-            <span style="color:var(--text4);font-size:14px;white-space:nowrap">台幣</span>
-          </div>
-        </div>`).join('')}
-    </div>
+    <div class="form-card" style="margin-bottom:20px">${rmbRows}</div>
     <div class="section-label">運費單價（按重量）</div>
-    <div class="form-card">
-      ${proxySettings.shipTiers.map((t, i) => `
-        <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
-          <div style="color:var(--text3);font-size:12px;margin-bottom:8px">${t.label}</div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" step="1" value="${t.price}"
-              onchange="proxySettings.shipTiers[${i}].price=parseFloat(this.value)||0;saveProxySettings()"
-              style="flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
-            <span style="color:var(--text4);font-size:14px;white-space:nowrap">元 / 公斤</span>
-          </div>
-        </div>`).join('')}
-    </div>`;
+    <div class="form-card">${shipRows}</div>`;
+}
+
+function updateRmbLabel(i) {
+  const t = proxySettings.rmbTiers[i];
+  const prev = i === 0 ? 0 : proxySettings.rmbTiers[i-1].maxRmb;
+  const isLast = i === proxySettings.rmbTiers.length - 1;
+  return isLast ? `${prev}以上` : `${prev}~${t.maxRmb}`;
+}
+
+function updateShipLabel(i) {
+  const t = proxySettings.shipTiers[i];
+  const prev = i === 0 ? 0 : proxySettings.shipTiers[i-1].maxKg;
+  const isLast = i === proxySettings.shipTiers.length - 1;
+  return isLast ? `${prev}公斤以上` : `${prev}~${t.maxKg}公斤`;
 }
 
 async function saveProxySettings() {
@@ -4291,12 +4336,8 @@ function renderProxyOrders() {
   // Update tab UI
   const pendingTab = document.getElementById('proxy-tab-pending');
   const doneTab = document.getElementById('proxy-tab-done');
-  if (pendingTab) {
-    pendingTab.style.cssText = `flex:1;text-align:center;padding:10px;border-radius:12px;font-size:15px;cursor:pointer;font-weight:500;background:${tab==='pending'?'var(--blue)':'var(--bg2)'};color:${tab==='pending'?'white':'var(--text3)'}`;
-  }
-  if (doneTab) {
-    doneTab.style.cssText = `flex:1;text-align:center;padding:10px;border-radius:12px;font-size:15px;cursor:pointer;font-weight:500;background:${tab==='done'?'var(--blue)':'var(--bg2)'};color:${tab==='done'?'white':'var(--text3)'}`;
-  }
+  if (pendingTab) { pendingTab.classList.toggle('active', tab === 'pending'); }
+  if (doneTab) { doneTab.classList.toggle('active', tab === 'done'); }
 
   const filtered = proxyOrders.filter(o => tab === 'pending' ? o.status !== 'done' : o.status === 'done');
   filtered.sort((a, b) => b.createdAt - a.createdAt);

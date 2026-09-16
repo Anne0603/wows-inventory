@@ -228,6 +228,8 @@ body.light {
   scrollbar-width: none;
 }
 .category-tabs::-webkit-scrollbar { display: none; }
+.proxy-tab { flex:1;text-align:center;padding:10px;border-radius:12px;font-size:15px;cursor:pointer;font-weight:500;background:var(--bg2);color:var(--text3); }
+.proxy-tab.active { background:var(--blue);color:white; }
 .cat-tab {
   background: var(--bg2); border-radius: 20px;
   border: 0.5px solid var(--border);
