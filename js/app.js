@@ -4247,30 +4247,30 @@ function renderProxySettings() {
   const el = document.getElementById('proxy-settings-content');
   if (!el) return;
   el.innerHTML = `
-    <div class="form-card" style="margin-bottom:12px">
-      <div class="section-label" style="padding:0 0 8px">商品匯率（按人民幣金額）</div>
+    <div class="section-label">商品匯率（按人民幣金額）</div>
+    <div class="form-card" style="margin-bottom:20px">
       ${proxySettings.rmbTiers.map((t, i) => `
-        <div class="form-row" style="padding:10px 0;border-bottom:0.5px solid var(--border)">
-          <div style="flex:1;color:var(--text2);font-size:14px">${t.label}</div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="color:var(--text4);font-size:13px">1人民幣＝</span>
+        <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
+          <div style="color:var(--text3);font-size:12px;margin-bottom:8px">${t.label}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--text4);font-size:14px;white-space:nowrap">1 人民幣 ＝</span>
             <input type="number" step="0.01" value="${t.rate}"
               onchange="proxySettings.rmbTiers[${i}].rate=parseFloat(this.value)||0;saveProxySettings()"
-              style="width:70px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:right">
-            <span style="color:var(--text4);font-size:13px">台幣</span>
+              style="flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
+            <span style="color:var(--text4);font-size:14px;white-space:nowrap">台幣</span>
           </div>
         </div>`).join('')}
     </div>
+    <div class="section-label">運費單價（按重量）</div>
     <div class="form-card">
-      <div class="section-label" style="padding:0 0 8px">運費單價（按重量）</div>
       ${proxySettings.shipTiers.map((t, i) => `
-        <div class="form-row" style="padding:10px 0;border-bottom:0.5px solid var(--border)">
-          <div style="flex:1;color:var(--text2);font-size:14px">${t.label}</div>
-          <div style="display:flex;align-items:center;gap:6px">
+        <div style="padding:14px 0;border-bottom:0.5px solid var(--border)">
+          <div style="color:var(--text3);font-size:12px;margin-bottom:8px">${t.label}</div>
+          <div style="display:flex;align-items:center;gap:8px">
             <input type="number" step="1" value="${t.price}"
               onchange="proxySettings.shipTiers[${i}].price=parseFloat(this.value)||0;saveProxySettings()"
-              style="width:70px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text2);font-size:14px;text-align:right">
-            <span style="color:var(--text4);font-size:13px">元/公斤</span>
+              style="flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:18px;text-align:right;font-weight:600">
+            <span style="color:var(--text4);font-size:14px;white-space:nowrap">元 / 公斤</span>
           </div>
         </div>`).join('')}
     </div>`;
@@ -4291,8 +4291,12 @@ function renderProxyOrders() {
   // Update tab UI
   const pendingTab = document.getElementById('proxy-tab-pending');
   const doneTab = document.getElementById('proxy-tab-done');
-  if (pendingTab) { pendingTab.style.background = tab === 'pending' ? 'var(--blue)' : 'var(--bg2)'; pendingTab.style.color = tab === 'pending' ? 'white' : 'var(--text3)'; }
-  if (doneTab) { doneTab.style.background = tab === 'done' ? 'var(--blue)' : 'var(--bg2)'; doneTab.style.color = tab === 'done' ? 'white' : 'var(--text3)'; }
+  if (pendingTab) {
+    pendingTab.style.cssText = `flex:1;text-align:center;padding:10px;border-radius:12px;font-size:15px;cursor:pointer;font-weight:500;background:${tab==='pending'?'var(--blue)':'var(--bg2)'};color:${tab==='pending'?'white':'var(--text3)'}`;
+  }
+  if (doneTab) {
+    doneTab.style.cssText = `flex:1;text-align:center;padding:10px;border-radius:12px;font-size:15px;cursor:pointer;font-weight:500;background:${tab==='done'?'var(--blue)':'var(--bg2)'};color:${tab==='done'?'white':'var(--text3)'}`;
+  }
 
   const filtered = proxyOrders.filter(o => tab === 'pending' ? o.status !== 'done' : o.status === 'done');
   filtered.sort((a, b) => b.createdAt - a.createdAt);
@@ -4308,22 +4312,24 @@ function renderProxyOrders() {
     const profit = o.status === 'done' ? (o.finalProfit || 0) : null;
     const customerName = customers.find(c => c.id === o.customerId)?.name || o.customerName || '未知客人';
     return `
-      <div class="form-card" style="margin-bottom:10px;cursor:pointer" onclick="showProxyOrderDetail('${o.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <div style="font-size:13px;color:var(--text4)">${o.orderNum}</div>
-          <div style="font-size:11px;padding:2px 8px;border-radius:10px;background:${o.status==='done'?'var(--green-bg)':'var(--amber-bg)'};color:${o.status==='done'?'var(--green)':'var(--amber)'}">
-            ${o.status === 'done' ? '已完成' : '待入庫'}
+      <div class="form-card" style="margin-bottom:12px;cursor:pointer;padding:18px" onclick="showProxyOrderDetail('${o.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:13px;color:var(--text4);font-family:monospace">${o.orderNum}</div>
+          <div style="font-size:12px;padding:3px 10px;border-radius:10px;background:${o.status==='done'?'var(--green-bg)':'var(--amber-bg)'};color:${o.status==='done'?'var(--green)':'var(--amber)'}">
+            ${o.status === 'done' ? '✓ 已完成' : '⏳ 待入庫'}
           </div>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:3px">${customerName}</div>
-            <div style="font-size:12px;color:var(--text4)">${o.date} ・ <span style="color:${modeColor}">${modeLabel}</span></div>
-            ${o.notes ? `<div style="font-size:12px;color:var(--text4);margin-top:3px">${o.notes}</div>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:18px;font-weight:600;color:var(--text2);margin-bottom:5px">${customerName}</div>
+            <div style="font-size:13px;color:var(--text4);margin-bottom:${o.notes?'4px':'0'}">${o.date} ・ <span style="color:${modeColor}">${modeLabel}</span></div>
+            ${o.notes ? `<div style="font-size:13px;color:var(--text4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.notes}</div>` : ''}
           </div>
-          <div style="text-align:right">
-            ${o.mode === 'A' ? `<div style="font-size:15px;font-weight:600;color:var(--text2)">¥${o.rmbAmount || 0}</div>` : ''}
-            ${profit !== null ? `<div style="font-size:14px;font-weight:600;color:${profit>=0?'var(--green)':'var(--red)'}">利潤 $${profit}</div>` : '<div style="font-size:12px;color:var(--text4)">暫估利潤待補登</div>'}
+          <div style="text-align:right;flex-shrink:0">
+            ${o.mode === 'A' ? `<div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:4px">¥${o.rmbAmount || 0}</div>` : ''}
+            ${profit !== null
+              ? `<div style="font-size:16px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'}">利潤 $${profit}</div>`
+              : `<div style="font-size:12px;color:var(--text4);margin-top:2px">等待補登運費</div>`}
           </div>
         </div>
       </div>`;
