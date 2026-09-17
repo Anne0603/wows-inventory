@@ -3681,19 +3681,49 @@ window.saveSupplierFromPicker = async () => {
 };
 
 function showCustomerPickerModal(callback) {
+  window._customerCallback = callback;
+  const renderList = (search) => {
+    const filtered = customers.filter(c => !search || c.name?.toLowerCase().includes(search.toLowerCase()));
+    return filtered.length === 0
+      ? `<div style="text-align:center;color:var(--text4);padding:24px 0;font-size:14px">找不到客戶</div>`
+      : filtered.map(c => `
+          <div class="picker-item" onclick="selectCustomerFromPicker('${c.id}','${c.name.replace(/'/g,"\\'")}')">
+            <span style="font-size:16px;color:var(--text2)">${c.name}</span>
+          </div>`).join('');
+  };
+
   showModal(`<div class="modal-handle"></div>
     <div class="modal-title">選擇客戶</div>
-    ${customers.length === 0
-      ? '<div class="empty-state" style="padding:20px 0"><i class="ti ti-users" style="font-size:40px;display:block;margin-bottom:8px;color:var(--text4)"></i><p style="color:var(--text4)">還沒有客戶</p></div>'
-      : customers.map(c => `
-        <div class="picker-item" onclick="selectCustomerFromPicker('${c.id}','${c.name}')">
-          ${c.name}
-        </div>`).join('')}
-    <div class="picker-item" style="color:var(--blue)" onclick="forceCloseModal();navigate('add-customer')">
+    <div class="search-bar" style="margin-bottom:12px">
+      <i class="ti ti-search"></i>
+      <input type="text" id="customer-picker-search" placeholder="搜尋客戶名稱"
+        oninput="document.getElementById('customer-picker-list').innerHTML=renderCustomerPickerList(this.value)"
+        style="background:none;border:none;outline:none;color:var(--text2);font-size:16px;flex:1;width:100%">
+    </div>
+    <div id="customer-picker-list">
+      ${customers.length === 0
+        ? '<div style="text-align:center;color:var(--text4);padding:24px 0;font-size:14px">還沒有客戶</div>'
+        : customers.map(c => `
+          <div class="picker-item" onclick="selectCustomerFromPicker('${c.id}','${c.name.replace(/'/g,"\\'")}')">
+            <span style="font-size:16px;color:var(--text2)">${c.name}</span>
+          </div>`).join('')}
+    </div>
+    <div class="picker-item" style="color:var(--blue);margin-top:4px" onclick="forceCloseModal();navigate('add-customer')">
       <i class="ti ti-plus"></i> 新增客戶
     </div>`);
-  window._customerCallback = callback;
+
+  // Focus search input after modal opens
+  setTimeout(() => document.getElementById('customer-picker-search')?.focus(), 150);
 }
+
+window.renderCustomerPickerList = (search) => {
+  const filtered = customers.filter(c => !search || c.name?.toLowerCase().includes(search.toLowerCase()));
+  if (filtered.length === 0) return `<div style="text-align:center;color:var(--text4);padding:24px 0;font-size:14px">找不到「${search}」</div>`;
+  return filtered.map(c => `
+    <div class="picker-item" onclick="selectCustomerFromPicker('${c.id}','${c.name.replace(/'/g,"\\'")}')">
+      <span style="font-size:16px;color:var(--text2)">${c.name}</span>
+    </div>`).join('');
+};
 
 window.selectCustomerFromPicker = (id, name) => {
   if (window._customerCallback) window._customerCallback({ id, name });
