@@ -4247,21 +4247,22 @@ window.renderProxySettings = function renderProxySettings() {
   const el = document.getElementById('proxy-settings-content');
   if (!el) return;
 
-  // 商品匯率 - 每個級距顯示：上限金額（可改）+ 匯率
+  // 商品匯率 - 起點自動串接上一格上限
   const rmbRows = proxySettings.rmbTiers.map((t, i) => {
     const isLast = i === proxySettings.rmbTiers.length - 1;
-    const prevMax = i === 0 ? 0 : proxySettings.rmbTiers[i-1].maxRmb;
+    const from = i === 0 ? 0 : proxySettings.rmbTiers[i-1].maxRmb;
     return `
       <div style="padding:16px;background:var(--bg2);border-radius:12px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div style="color:var(--text4);font-size:12px">人民幣金額級距</div>
-          <div style="color:var(--text3);font-size:13px;font-weight:500">
-            ¥${prevMax} ~
+          <div style="color:var(--text3);font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px">
+            <span>¥${from}</span>
+            <span style="color:var(--text4)">~</span>
             ${isLast
-              ? `<span style="color:var(--blue)">以上</span>`
-              : `<input type="number" value="${t.maxRmb}" min="1"
-                  onblur="proxySettings.rmbTiers[${i}].maxRmb=parseInt(this.value)||0;saveProxySettings();renderProxySettings()"
-                  style="width:70px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"> ¥`}
+              ? `<span style="color:var(--blue);font-weight:700">以上</span>`
+              : `<input type="number" value="${t.maxRmb}" min="${from+1}"
+                  onblur="if(parseInt(this.value)>${from}){proxySettings.rmbTiers[${i}].maxRmb=parseInt(this.value);saveProxySettings();renderProxySettings();}else{this.value=${t.maxRmb};}"
+                  style="width:70px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"><span> ¥</span>`}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
@@ -4274,21 +4275,22 @@ window.renderProxySettings = function renderProxySettings() {
       </div>`;
   }).join('');
 
-  // 運費單價 - 每個級距顯示：上限公斤（可改）+ 收客人單價
+  // 運費單價 - 起點自動串接上一格上限
   const shipRows = proxySettings.shipTiers.map((t, i) => {
     const isLast = i === proxySettings.shipTiers.length - 1;
-    const prevMax = i === 0 ? 0 : proxySettings.shipTiers[i-1].maxKg;
+    const from = i === 0 ? 0 : proxySettings.shipTiers[i-1].maxKg;
     return `
       <div style="padding:16px;background:var(--bg2);border-radius:12px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div style="color:var(--text4);font-size:12px">重量級距</div>
-          <div style="color:var(--text3);font-size:13px;font-weight:500">
-            ${prevMax} ~
+          <div style="color:var(--text3);font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px">
+            <span>${from}</span>
+            <span style="color:var(--text4)">~</span>
             ${isLast
-              ? `<span style="color:var(--blue)">以上</span> 公斤`
-              : `<input type="number" value="${t.maxKg}" min="1"
-                  onblur="proxySettings.shipTiers[${i}].maxKg=parseInt(this.value)||0;saveProxySettings();renderProxySettings()"
-                  style="width:60px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"> 公斤`}
+              ? `<span style="color:var(--blue);font-weight:700">以上</span><span> 公斤</span>`
+              : `<input type="number" value="${t.maxKg}" min="${from+1}"
+                  onblur="if(parseInt(this.value)>${from}){proxySettings.shipTiers[${i}].maxKg=parseInt(this.value);saveProxySettings();renderProxySettings();}else{this.value=${t.maxKg};}"
+                  style="width:60px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"><span> 公斤</span>`}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
