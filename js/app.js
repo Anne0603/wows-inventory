@@ -4247,58 +4247,49 @@ window.renderProxySettings = function renderProxySettings() {
   const el = document.getElementById('proxy-settings-content');
   if (!el) return;
 
-  // 商品匯率 - 起點自動串接上一格上限
+  // 讀取目前所有值到暫存，讓使用者改完按儲存才生效
   const rmbRows = proxySettings.rmbTiers.map((t, i) => {
     const isLast = i === proxySettings.rmbTiers.length - 1;
     const from = i === 0 ? 0 : proxySettings.rmbTiers[i-1].maxRmb;
     return `
       <div style="padding:16px;background:var(--bg2);border-radius:12px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div style="color:var(--text4);font-size:12px">人民幣金額級距</div>
-          <div style="color:var(--text3);font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px">
-            <span>¥${from}</span>
-            <span style="color:var(--text4)">~</span>
-            ${isLast
-              ? `<span style="color:var(--blue);font-weight:700">以上</span>`
-              : `<input type="number" value="${t.maxRmb}" min="${from+1}"
-                  onblur="if(parseInt(this.value)>${from}){proxySettings.rmbTiers[${i}].maxRmb=parseInt(this.value);saveProxySettings();renderProxySettings();}else{this.value=${t.maxRmb};}"
-                  style="width:70px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"><span> ¥</span>`}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="color:var(--text4);font-size:12px">人民幣金額</div>
+          <div style="color:var(--text3);font-size:13px">
+            ¥${from} ~
+            ${isLast ? '<span style="color:var(--blue);font-weight:700"> 以上</span>'
+              : `<input id="rmb-max-${i}" type="number" value="${t.maxRmb}"
+                  style="width:70px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"> ¥`}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span style="color:var(--text4);font-size:13px;white-space:nowrap">收客人匯率</span>
-          <input type="number" step="0.01" value="${t.rate}"
-            onblur="proxySettings.rmbTiers[${i}].rate=parseFloat(this.value)||0;saveProxySettings()"
+          <input id="rmb-rate-${i}" type="number" step="0.01" value="${t.rate}"
             style="flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:22px;text-align:right;font-weight:700;outline:none">
-          <span style="color:var(--text4);font-size:13px;white-space:nowrap">台幣</span>
+          <span style="color:var(--text4);font-size:13px">台幣</span>
         </div>
       </div>`;
   }).join('');
 
-  // 運費單價 - 起點自動串接上一格上限
   const shipRows = proxySettings.shipTiers.map((t, i) => {
     const isLast = i === proxySettings.shipTiers.length - 1;
     const from = i === 0 ? 0 : proxySettings.shipTiers[i-1].maxKg;
     return `
       <div style="padding:16px;background:var(--bg2);border-radius:12px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div style="color:var(--text4);font-size:12px">重量級距</div>
-          <div style="color:var(--text3);font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px">
-            <span>${from}</span>
-            <span style="color:var(--text4)">~</span>
-            ${isLast
-              ? `<span style="color:var(--blue);font-weight:700">以上</span><span> 公斤</span>`
-              : `<input type="number" value="${t.maxKg}" min="${from+1}"
-                  onblur="if(parseInt(this.value)>${from}){proxySettings.shipTiers[${i}].maxKg=parseInt(this.value);saveProxySettings();renderProxySettings();}else{this.value=${t.maxKg};}"
-                  style="width:60px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"><span> 公斤</span>`}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="color:var(--text4);font-size:12px">重量</div>
+          <div style="color:var(--text3);font-size:13px">
+            ${from} ~
+            ${isLast ? '<span style="color:var(--blue);font-weight:700"> 以上</span> 公斤'
+              : `<input id="ship-max-${i}" type="number" value="${t.maxKg}"
+                  style="width:60px;background:var(--bg3);border:0.5px solid var(--blue);border-radius:8px;padding:4px 8px;color:var(--blue);font-size:14px;font-weight:600;text-align:center"> 公斤`}
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <span style="color:var(--text4);font-size:13px;white-space:nowrap">收客人運費</span>
-          <input type="number" step="1" value="${t.price}"
-            onblur="proxySettings.shipTiers[${i}].price=parseFloat(this.value)||0;saveProxySettings()"
+          <input id="ship-price-${i}" type="number" step="1" value="${t.price}"
             style="flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text2);font-size:22px;text-align:right;font-weight:700;outline:none">
-          <span style="color:var(--text4);font-size:13px;white-space:nowrap">元/公斤</span>
+          <span style="color:var(--text4);font-size:13px">元/公斤</span>
         </div>
       </div>`;
   }).join('');
@@ -4308,11 +4299,45 @@ window.renderProxySettings = function renderProxySettings() {
     <div style="margin-bottom:20px">${rmbRows}</div>
     <div class="section-label">運費單價（按重量）</div>
     <div style="margin-bottom:20px">${shipRows}</div>
-    <div style="color:var(--text4);font-size:12px;text-align:center;line-height:1.8">
-      修改後點擊輸入框外自動儲存<br>
-      級距上限可直接修改，最後一個級距自動為「以上」
-    </div>`;
+    <button class="submit-btn" onclick="saveProxySettingsFromForm()">儲存設定</button>`;
 }
+
+window.saveProxySettingsFromForm = async () => {
+  // 讀取所有 rmb 上限（依序讀，確保串接）
+  let prevRmb = 0;
+  for (let i = 0; i < proxySettings.rmbTiers.length - 1; i++) {
+    const maxEl = document.getElementById('rmb-max-' + i);
+    const rateEl = document.getElementById('rmb-rate-' + i);
+    const maxVal = parseInt(maxEl?.value) || 0;
+    if (maxVal <= prevRmb) { showToast(`第${i+1}個人民幣級距上限必須大於 ${prevRmb}`); return; }
+    proxySettings.rmbTiers[i].maxRmb = maxVal;
+    proxySettings.rmbTiers[i].rate = parseFloat(rateEl?.value) || 0;
+    prevRmb = maxVal;
+  }
+  // 最後一格只改匯率
+  const lastI = proxySettings.rmbTiers.length - 1;
+  const lastRateEl = document.getElementById('rmb-rate-' + lastI);
+  proxySettings.rmbTiers[lastI].rate = parseFloat(lastRateEl?.value) || 0;
+
+  // 讀取所有 ship 上限
+  let prevKg = 0;
+  for (let i = 0; i < proxySettings.shipTiers.length - 1; i++) {
+    const maxEl = document.getElementById('ship-max-' + i);
+    const priceEl = document.getElementById('ship-price-' + i);
+    const maxVal = parseInt(maxEl?.value) || 0;
+    if (maxVal <= prevKg) { showToast(`第${i+1}個重量級距上限必須大於 ${prevKg} 公斤`); return; }
+    proxySettings.shipTiers[i].maxKg = maxVal;
+    proxySettings.shipTiers[i].price = parseFloat(priceEl?.value) || 0;
+    prevKg = maxVal;
+  }
+  const lastShipI = proxySettings.shipTiers.length - 1;
+  const lastPriceEl = document.getElementById('ship-price-' + lastShipI);
+  proxySettings.shipTiers[lastShipI].price = parseFloat(lastPriceEl?.value) || 0;
+
+  await saveProxySettings();
+  showToast('✅ 設定已儲存');
+  renderProxySettings(); // re-render 確認串接正確
+};
 
 function updateRmbLabel(i) {
   const t = proxySettings.rmbTiers[i];
