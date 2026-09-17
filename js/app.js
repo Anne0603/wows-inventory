@@ -4741,66 +4741,115 @@ window.showProxyShipForm = (orderId) => {
   const o = proxyOrders.find(x => x.id === orderId);
   if (!o) return;
   const el = document.getElementById('proxy-order-detail-content');
+  const customerName = customers.find(c=>c.id===o.customerId)?.name || o.customerName || '';
+
+  const inputStyle = 'width:100%;background:var(--bg2);border:0.5px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text2);font-size:20px;font-weight:600;text-align:right;outline:none;box-sizing:border-box';
 
   el.innerHTML = `
+    <!-- 訂單摘要 -->
     <div class="form-card" style="margin-bottom:12px">
-      <div style="color:var(--text2);font-weight:600;margin-bottom:4px">${o.orderNum} 補登運費</div>
-      <div style="color:var(--text4);font-size:13px">${customers.find(c=>c.id===o.customerId)?.name || o.customerName}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="color:var(--text2);font-size:17px;font-weight:600">${customerName}</div>
+          <div style="color:var(--text4);font-size:12px;margin-top:3px">${o.orderNum} ・ ${o.date}</div>
+        </div>
+        <div style="text-align:right">
+          ${o.mode==='A' ? `<div style="color:var(--text4);font-size:12px">已收第一筆</div><div style="color:var(--text2);font-size:16px;font-weight:600">$${o.received1||0}</div>` : ''}
+          <div style="color:var(--text4);font-size:12px;margin-top:2px">商品成本</div>
+          <div style="color:var(--red);font-size:16px;font-weight:600">$${o.cost1||0}</div>
+        </div>
+      </div>
     </div>
 
     ${o.mode === 'A' ? `
+    <!-- A模式：重量 → 建議運費 → 實收運費 → 你的運費成本 -->
+    <div class="section-label">運費補登</div>
     <div class="form-card" style="margin-bottom:12px">
-      <div style="color:var(--text4);font-size:12px;margin-bottom:10px">運費資料</div>
-      <div class="form-row" style="padding:8px 0">
-        <div style="color:var(--text3);font-size:15px;flex:1">重量（公斤）</div>
-        <input type="number" id="proxy-weight" placeholder="0.0" step="0.1" oninput="updateProxyShipCalc()"
-          style="width:80px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+      <div style="margin-bottom:16px">
+        <div style="color:var(--text3);font-size:13px;margin-bottom:8px">實際重量（公斤）</div>
+        <input type="number" id="proxy-weight" placeholder="0.0" step="0.1" oninput="updateProxyShipCalc()" style="${inputStyle}">
       </div>
-      <div class="form-row" style="padding:8px 0;background:var(--bg2);border-radius:8px;margin:4px 0">
-        <div style="color:var(--text3);font-size:14px;flex:1">建議收客人運費</div>
-        <div style="color:var(--blue);font-size:16px;font-weight:600" id="proxy-suggested-ship">—</div>
+      <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+        <div style="color:var(--text3);font-size:14px">系統建議收客人運費</div>
+        <div style="color:var(--blue);font-size:20px;font-weight:700" id="proxy-suggested-ship">—</div>
       </div>
-      <div class="form-row" style="padding:8px 0">
-        <div style="color:var(--text3);font-size:15px;flex:1">實收運費<span style="color:var(--red)">*</span></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="color:var(--text4)">$</span>
-          <input type="number" id="proxy-received-ship" placeholder="0"
-            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+      <div style="margin-bottom:16px">
+        <div style="color:var(--text3);font-size:13px;margin-bottom:8px">實際收客人運費 <span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--text4);font-size:16px">$</span>
+          <input type="number" id="proxy-received-ship" placeholder="0" oninput="updateProxyShipFinalCalc('${orderId}')" style="${inputStyle}">
         </div>
       </div>
-      <div class="form-row" style="padding:8px 0">
-        <div style="color:var(--text3);font-size:15px;flex:1">你的台幣運費成本<span style="color:var(--red)">*</span></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="color:var(--text4)">$</span>
-          <input type="number" id="proxy-ship-cost" placeholder="0"
-            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+      <div>
+        <div style="color:var(--text3);font-size:13px;margin-bottom:8px">你實際付的台幣運費成本 <span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--text4);font-size:16px">$</span>
+          <input type="number" id="proxy-ship-cost" placeholder="0" oninput="updateProxyShipFinalCalc('${orderId}')" style="${inputStyle}">
         </div>
       </div>
     </div>` : `
+    <!-- B模式：運費成本 + 實收總額 -->
+    <div class="section-label">補登收款與運費</div>
     <div class="form-card" style="margin-bottom:12px">
-      <div style="color:var(--text4);font-size:12px;margin-bottom:10px">收款與運費</div>
-      <div class="form-row" style="padding:8px 0">
-        <div style="color:var(--text3);font-size:15px;flex:1">你的台幣運費成本<span style="color:var(--red)">*</span></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="color:var(--text4)">$</span>
-          <input type="number" id="proxy-ship-cost" placeholder="0"
-            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+      <div style="margin-bottom:16px">
+        <div style="color:var(--text3);font-size:13px;margin-bottom:8px">你實際付的台幣運費成本 <span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--text4);font-size:16px">$</span>
+          <input type="number" id="proxy-ship-cost" placeholder="0" oninput="updateProxyShipFinalCalc('${orderId}')" style="${inputStyle}">
         </div>
       </div>
-      <div class="form-row" style="padding:8px 0">
-        <div style="color:var(--text3);font-size:15px;flex:1">實收總額<span style="color:var(--red)">*</span></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="color:var(--text4)">$</span>
-          <input type="number" id="proxy-received-total" placeholder="0"
-            style="width:100px;background:var(--bg2);border:0.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text2);font-size:16px;text-align:right">
+      <div>
+        <div style="color:var(--text3);font-size:13px;margin-bottom:8px">實際收到的總金額 <span style="color:var(--red)">*</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--text4);font-size:16px">$</span>
+          <input type="number" id="proxy-received-total" placeholder="0" oninput="updateProxyShipFinalCalc('${orderId}')" style="${inputStyle}">
         </div>
       </div>
     </div>`}
 
-    <button class="submit-btn" onclick="confirmProxyShip('${orderId}')">確認完成訂單</button>
+    <!-- 即時利潤預覽 -->
+    <div id="proxy-ship-profit-preview" style="display:none;border-radius:12px;padding:16px;margin-bottom:12px;background:var(--bg2)"></div>
+
+    <button class="submit-btn" onclick="confirmProxyShip('${orderId}')">✅ 確認完成訂單</button>
     <div style="margin-top:8px">
       <button class="submit-btn" style="background:var(--bg2);color:var(--text3)" onclick="showProxyOrderDetail('${orderId}')">取消</button>
     </div>`;
+};
+
+window.updateProxyShipFinalCalc = (orderId) => {
+  const o = proxyOrders.find(x => x.id === orderId);
+  if (!o) return;
+  const el = document.getElementById('proxy-ship-profit-preview');
+  if (!el) return;
+
+  const shipCost = parseFloat(document.getElementById('proxy-ship-cost')?.value) || 0;
+
+  let totalReceived = 0, totalCost = 0;
+  if (o.mode === 'A') {
+    const receivedShip = parseFloat(document.getElementById('proxy-received-ship')?.value) || 0;
+    totalReceived = (o.received1||0) + receivedShip;
+    totalCost = (o.cost1||0) + shipCost;
+  } else {
+    const receivedTotal = parseFloat(document.getElementById('proxy-received-total')?.value) || 0;
+    totalReceived = receivedTotal;
+    totalCost = (o.cost1||0) + shipCost;
+  }
+
+  if (shipCost > 0 && totalReceived > 0) {
+    const profit = totalReceived - totalCost;
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="color:var(--text3);font-size:14px">預估最終利潤</div>
+        <div style="font-size:26px;font-weight:700;color:${profit>=0?'var(--green)':'var(--red)'}">$${profit}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text4)">
+        <span>總收入 $${totalReceived}</span>
+        <span>總成本 $${totalCost}</span>
+      </div>`;
+  } else {
+    el.style.display = 'none';
+  }
 };
 
 window.updateProxyShipCalc = () => {
