@@ -4495,11 +4495,18 @@ window.renderProxyOrderForm = function renderProxyOrderForm(mode) {
       </div>
     </div>`}
 
-    <div style="color:var(--text4);font-size:12px;text-align:center;margin:8px 0 4px">貨到後再回來補運費資料</div>
+    <div id="proxy-est-profit" style="display:none;background:var(--bg2);border-radius:12px;padding:16px;margin-bottom:12px"></div>
+    <div style="color:var(--text4);font-size:12px;text-align:center;margin:4px 0 12px">⏳ 貨到後回來補登重量與運費</div>
     <button class="submit-btn" onclick="confirmAddProxyOrder()">建立訂單</button>`;
 
   // Set rate from settings based on current RMB input
   updateProxyCalcA();
+
+  // Hook oninput for est profit on received1 and cost1
+  setTimeout(() => {
+    document.getElementById('proxy-received1')?.addEventListener('input', updateProxyEstProfit);
+    document.getElementById('proxy-cost1')?.addEventListener('input', updateProxyEstProfit);
+  }, 100);
 }
 
 window.updateProxyCalcA = () => {
@@ -4508,16 +4515,46 @@ window.updateProxyCalcA = () => {
   const suggestedEl = document.getElementById('proxy-suggested-price');
   if (!rateInput || !suggestedEl) return;
 
-  // Auto-fill rate from settings if empty
-  if (!rateInput.value && rmb > 0) {
-    rateInput.value = getProxyRmbRate(rmb).toFixed(2);
-  }
-  // Update rate when rmb changes (tier might change)
+  // Auto-fill rate from settings based on rmb tier
   if (rmb > 0) rateInput.value = getProxyRmbRate(rmb).toFixed(2);
 
   const rate = parseFloat(rateInput.value) || 0;
-  const suggested = rmb * rate;
-  suggestedEl.textContent = suggested > 0 ? `$${Math.round(suggested)}` : '—';
+  const suggested = Math.round(rmb * rate);
+  suggestedEl.textContent = suggested > 0 ? `$${suggested}` : '—';
+
+  // Update estimated profit
+  updateProxyEstProfit();
+};
+
+window.updateProxyEstProfit = () => {
+  const el = document.getElementById('proxy-est-profit');
+  if (!el) return;
+  const mode = window._proxyFormMode || 'A';
+  if (mode === 'A') {
+    const received1 = parseFloat(document.getElementById('proxy-received1')?.value) || 0;
+    const cost1 = parseFloat(document.getElementById('proxy-cost1')?.value) || 0;
+    if (received1 > 0 && cost1 > 0) {
+      const est = received1 - cost1;
+      el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="color:var(--text3);font-size:14px">暫估利潤 <span style="color:var(--text4);font-size:11px">（未含運費）</span></div>
+          <div style="color:var(--text4);font-size:11px;margin-top:2px">已收 $${received1} − 已付 $${cost1}</div>
+        </div>
+        <div style="font-size:22px;font-weight:700;color:${est>=0?'var(--green)':'var(--red)'}">${est>=0?'+':''}$${est}</div>
+      </div>`;
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  } else {
+    const cost1 = parseFloat(document.getElementById('proxy-cost1')?.value) || 0;
+    if (cost1 > 0) {
+      el.innerHTML = `<div style="color:var(--text3);font-size:14px">已付成本 <span style="color:var(--red);font-size:16px;font-weight:700">$${cost1}</span> <span style="color:var(--text4);font-size:11px">（貨到後補登收款才能算利潤）</span></div>`;
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
 };
 
 window.showCustomerPickerForProxy = () => {
@@ -4644,7 +4681,26 @@ window.showProxyOrderDetail = (orderId) => {
 
     ${profitHtml}
 
-    ${!isDone ? `<button class="submit-btn" onclick="showProxyShipForm('${o.id}')">📦 貨到補登運費</button>` : ''}
+    ${!isDone ? (() => {
+      const estProfit = o.mode === 'A'
+        ? ((o.received1||0) - (o.cost1||0))
+        : null;
+      return `
+        <div style="background:var(--bg2);border-radius:12px;padding:16px;margin-bottom:12px">
+          ${estProfit !== null ? `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div>
+                <div style="color:var(--text3);font-size:14px">暫估利潤 <span style="color:var(--text4);font-size:11px">未含運費</span></div>
+                <div style="color:var(--text4);font-size:11px;margin-top:2px">已收 $${o.received1} − 已付 $${o.cost1}</div>
+              </div>
+              <div style="font-size:24px;font-weight:700;color:${estProfit>=0?'var(--green)':'var(--red)'}">${estProfit>=0?'+':''}$${estProfit}</div>
+            </div>
+            <div style="height:0.5px;background:var(--border);margin-bottom:12px"></div>` : ''}
+          <button class="submit-btn" style="margin:0;background:var(--amber)" onclick="showProxyShipForm('${o.id}')">
+            📦 貨到了！補登重量與運費
+          </button>
+        </div>`;
+    })() : ''}
     <div style="margin-top:8px">
       <button class="submit-btn red" onclick="deleteProxyOrder('${o.id}')">刪除訂單</button>
     </div>`;
